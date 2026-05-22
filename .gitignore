@@ -1,0 +1,44 @@
+# === Go 編譯產物 (Binaries) ===
+# 排除 Makefile 中定義的執行檔
+/myapp
+# 排除所有核心轉儲文件
+*.out
+*.exe
+*.test
+*.prof
+
+# === Docker 相關 ===
+# 排除可能產生的 Docker 日誌
+*.log
+# 如果有使用 docker-compose 的環境變數設定
+.env
+
+# === 依賴管理 (Dependencies) ===
+# 除非你有特殊需求要將依賴庫推上 Git，否則排除 vendor
+# vendor/
+# 下面這兩個絕對【不能】排除，它們是 Go 的核心依賴紀錄
+# !go.mod
+# !go.sum
+
+# === 程式碼檢查與測試 (Lint & Coverage) ===
+# 排除測試覆蓋率報告
+cp.out
+coverage.txt
+.golangci-lint.cache/
+
+# === 編輯器與系統檔案 (IDEs & OS) ===
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+
+# === 臨時檔案 (Temporary) ===
+/tmp/
+/dist/
+.gocache/
+
+# === Claude Code ===
+.claude/
+memory/
+CLAUDE.md
