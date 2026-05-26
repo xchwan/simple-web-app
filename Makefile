@@ -39,12 +39,23 @@ test:
 	@echo "透過 Docker 執行測試..."
 	$(DOCKER_RUN) go test ./test/... -v
 
-# Integration test：需先 make up，用 dev image 連進 compose 網路執行
+# 建立測試用 DB（appdb_test）並執行 migration，首次使用或重建時執行
+setup-test-db:
+	docker compose exec mysql mysql -uroot -proot_secret -e \
+		"CREATE DATABASE IF NOT EXISTS appdb_test; \
+		 GRANT ALL PRIVILEGES ON appdb_test.* TO 'app'@'%'; \
+		 FLUSH PRIVILEGES;"
+	docker run --rm \
+		--network simple-web-app_default \
+		-e DB_DSN="app:secret@tcp(mysql:3306)/appdb_test?parseTime=true" \
+		simple-web-app-app ./migrate
+
+# Integration test：打 appdb_test，與開發 DB 隔離（需先 make up && make setup-test-db）
 test-integration:
 	docker run --rm \
 		--network simple-web-app_default \
 		-v $(PWD):/app -w /app \
-		-e DB_DSN="app:secret@tcp(mysql:3306)/appdb?parseTime=true" \
+		-e DB_DSN="app:secret@tcp(mysql:3306)/appdb_test?parseTime=true" \
 		-e REDIS_ADDR="redis:6379" \
 		$(IMAGE_NAME) go test ./test/... -v
 # ===== 檢查與測試 (Check & Testing) =====
@@ -90,4 +101,4 @@ down-v:
 logs:
 	docker compose logs -f app
 
-.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs migrate test-integration
+.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs migrate setup-test-db test-integration
