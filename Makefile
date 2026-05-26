@@ -8,7 +8,7 @@ DOCKER_RUN=docker run --rm -v $(PWD):/app -w /app $(IMAGE_NAME)
 DOCKER_RUN_TTY=docker run --rm -it -v $(PWD):/app -w /app $(IMAGE_NAME)
 
 # ===== 進入點 =====
-all: staticcheck format test build
+all: staticcheck format build
 
 # ===== 開發環境管理 =====
 
@@ -35,11 +35,7 @@ run:
 	@echo "透過 Docker 執行程式..."
 	$(DOCKER_RUN) ./$(BINARY_NAME)
 
-test:
-	@echo "透過 Docker 執行測試..."
-	$(DOCKER_RUN) go test ./test/... -v
-
-# 建立測試用 DB（appdb_test）並執行 migration，首次使用或重建時執行
+# 建立測試用 DB（appdb_test）並執行 migration，首次使用或 schema 變動時執行
 setup-test-db:
 	docker compose exec mysql mysql -uroot -proot_secret -e \
 		"CREATE DATABASE IF NOT EXISTS appdb_test; \
@@ -50,8 +46,8 @@ setup-test-db:
 		-e DB_DSN="app:secret@tcp(mysql:3306)/appdb_test?parseTime=true" \
 		simple-web-app-app ./migrate
 
-# Integration test：打 appdb_test，與開發 DB 隔離（需先 make up && make setup-test-db）
-test-integration:
+# 執行測試（需先 make up && make setup-test-db）
+test:
 	docker run --rm \
 		--network simple-web-app_default \
 		-v $(PWD):/app -w /app \
@@ -101,4 +97,4 @@ down-v:
 logs:
 	docker compose logs -f app
 
-.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs migrate setup-test-db test-integration
+.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs migrate setup-test-db
