@@ -11,7 +11,7 @@ import (
 )
 
 // SetupRoutes 向 router 註冊 user 相關的依賴、例外規則與路由。
-func SetupRoutes(router *framework.Router) {
+func SetupRoutes(router *framework.Router, docs *plugin.DocPlugin) {
 	router.AddPlugin(plugin.NewExceptionMapperPlugin().
 		On(ErrEmailDuplicate, http.StatusBadRequest, "Duplicate email").
 		On(ErrRegisterFormatInvalid, http.StatusBadRequest, "Registration's format incorrect.").
@@ -38,12 +38,12 @@ func SetupRoutes(router *framework.Router) {
 	h := router.Resolve("userHandler").(*UserHandler)
 
 	// 公開路由（不需登入）
-	router.POST("/api/users", h.Register)
-	router.POST("/api/users/login", h.Login)
+	router.POST("/api/users", plugin.Doc[RegisterRequest, UserResponse](docs, h.Register))
+	router.POST("/api/users/login", plugin.Doc[LoginRequest, LoginResponse](docs, h.Login))
 
 	// 需要登入的路由
 	protected := router.Group("/api", Auth)
-	protected.POST("/users/logout", h.Logout)
-	protected.PATCH("/users/{userId}", h.UpdateName)
-	protected.GET("/users", h.SearchUsers)
+	protected.POST("/users/logout", plugin.Doc[plugin.NoBody, plugin.NoBody](docs, h.Logout))
+	protected.PATCH("/users/{userId}", plugin.Doc[RenameRequest, plugin.NoBody](docs, h.UpdateName))
+	protected.GET("/users", plugin.Doc[plugin.NoBody, []UserResponse](docs, h.SearchUsers))
 }

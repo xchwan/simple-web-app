@@ -22,28 +22,28 @@ func (h *UserHandler) service(r *http.Request) *UserService {
 
 // ===== Request / Response DTO =====
 
-type registerRequest struct {
+type RegisterRequest struct {
 	Email    string `json:"email"`
 	Name     string `json:"name"`
 	Password string `json:"password"`
 }
 
-type loginRequest struct {
+type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type renameRequest struct {
+type RenameRequest struct {
 	NewName string `json:"newName"`
 }
 
-type userResponse struct {
+type UserResponse struct {
 	ID    int    `json:"id"`
 	Email string `json:"email"`
 	Name  string `json:"name"`
 }
 
-type loginResponse struct {
+type LoginResponse struct {
 	ID    int    `json:"id"`
 	Email string `json:"email"`
 	Name  string `json:"name"`
@@ -54,7 +54,7 @@ type loginResponse struct {
 
 // Register 處理 POST /api/users。
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var req registerRequest
+	var req RegisterRequest
 	if err := framework.ParseOrRespond(w, r, &req); err != nil {
 		return
 	}
@@ -63,14 +63,14 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		framework.HandleError(w, r, err)
 		return
 	}
-	framework.Respond(w, r, http.StatusCreated, userResponse{
+	framework.Respond(w, r, http.StatusCreated, UserResponse{
 		ID: u.ID, Email: u.Email, Name: u.Name,
 	})
 }
 
 // Login 處理 POST /api/users/login。
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req loginRequest
+	var req LoginRequest
 	if err := framework.ParseOrRespond(w, r, &req); err != nil {
 		return
 	}
@@ -79,7 +79,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		framework.HandleError(w, r, err)
 		return
 	}
-	framework.Respond(w, r, http.StatusOK, loginResponse{
+	framework.Respond(w, r, http.StatusOK, LoginResponse{
 		ID: u.ID, Email: u.Email, Name: u.Name, Token: token,
 	})
 }
@@ -101,7 +101,7 @@ func (h *UserHandler) UpdateName(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req renameRequest
+	var req RenameRequest
 	if err := framework.ParseOrRespond(w, r, &req); err != nil {
 		return
 	}
@@ -118,9 +118,9 @@ func (h *UserHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 	keyword := r.URL.Query().Get("keyword")
 	users := h.service(r).SearchUsers(keyword)
 
-	result := make([]userResponse, len(users))
+	result := make([]UserResponse, len(users))
 	for i, u := range users {
-		result[i] = userResponse{ID: u.ID, Email: u.Email, Name: u.Name}
+		result[i] = UserResponse{ID: u.ID, Email: u.Email, Name: u.Name}
 	}
 	framework.Respond(w, r, http.StatusOK, result)
 }

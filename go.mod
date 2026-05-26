@@ -4,7 +4,7 @@ go 1.25.10
 
 require (
 	github.com/google/uuid v1.6.0
-	github.com/xchwan/simple-web-framework v0.0.0-20260526053736-756f1e80dcd1
+	github.com/xchwan/simple-web-framework v0.0.0-20260526083321-5928b14a3dbc
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.31.1
 )

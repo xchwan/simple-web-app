@@ -27,7 +27,7 @@ func newRouter() http.Handler {
 	router := framework.NewRouter()
 	router.Bind("db", func() any { return database })
 	router.Bind("redis", func() any { return rdb })
-	user.SetupRoutes(router)
+	user.SetupRoutes(router, nil)
 	return router
 }
 
