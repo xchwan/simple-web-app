@@ -65,6 +65,10 @@ clean:
 up:
 	docker compose up --build -d
 
+# 執行資料庫 migration（需先 make up）
+migrate:
+	docker compose run --rm app ./migrate
+
 # 停止並移除所有容器
 down:
 	docker compose down
@@ -77,4 +81,4 @@ down-v:
 logs:
 	docker compose logs -f app
 
-.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs
+.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs migrate
