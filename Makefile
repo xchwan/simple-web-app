@@ -35,16 +35,12 @@ run:
 	@echo "透過 Docker 執行程式..."
 	$(DOCKER_RUN) ./$(BINARY_NAME)
 
-# 建立測試用 DB（appdb_test）並執行 migration，首次使用或 schema 變動時執行
+# 建立測試用 DB（appdb_test），首次使用時執行（migration 由測試自動處理）
 setup-test-db:
 	docker compose exec mysql mysql -uroot -proot_secret -e \
 		"CREATE DATABASE IF NOT EXISTS appdb_test; \
 		 GRANT ALL PRIVILEGES ON appdb_test.* TO 'app'@'%'; \
 		 FLUSH PRIVILEGES;"
-	docker run --rm \
-		--network simple-web-app_default \
-		-e DB_DSN="app:secret@tcp(mysql:3306)/appdb_test?parseTime=true" \
-		simple-web-app-app ./migrate
 
 # 執行測試（需先 make up && make setup-test-db）
 test:
@@ -81,10 +77,6 @@ clean:
 up:
 	docker compose up --build -d
 
-# 執行資料庫 migration（需先 make up）
-migrate:
-	docker compose run --rm app ./migrate
-
 # 停止並移除所有容器
 down:
 	docker compose down
@@ -97,4 +89,4 @@ down-v:
 logs:
 	docker compose logs -f app
 
-.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs migrate setup-test-db
+.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs setup-test-db

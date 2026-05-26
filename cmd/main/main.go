@@ -15,6 +15,10 @@ func main() {
 		log.Fatalf("DB 連線失敗: %v", err)
 	}
 
+	if err := db.Migrate(database); err != nil {
+		log.Fatalf("Migration 失敗: %v", err)
+	}
+
 	rdb := db.ConnectRedis()
 
 	docs := apidoc.NewDocPlugin()

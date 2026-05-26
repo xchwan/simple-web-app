@@ -33,11 +33,18 @@ func newRouter() http.Handler {
 
 
 // TestMain 若未設定 DB_DSN 則跳過所有 integration test，
-// 否則在跑測試前先清空資料，確保每次執行都是乾淨的狀態。
+// 否則先確保 schema 存在，再清空資料，確保每次執行都是乾淨的狀態。
 func TestMain(m *testing.M) {
 	if os.Getenv("DB_DSN") == "" {
-		fmt.Println("⚠️  跳過 integration tests（請先執行 make up，再用 make test-integration）")
+		fmt.Println("⚠️  跳過 integration tests（請先執行 make up，再用 make test）")
 		os.Exit(0)
+	}
+	database, err := db.Connect()
+	if err != nil {
+		panic("DB 連線失敗: " + err.Error())
+	}
+	if err := db.Migrate(database); err != nil {
+		panic("Migration 失敗: " + err.Error())
 	}
 	cleanUp()
 	os.Exit(m.Run())

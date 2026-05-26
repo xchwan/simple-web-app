@@ -34,7 +34,6 @@ CMD ["make", "run"]
 FROM dev AS builder
 
 RUN go build -o /app/myapp ./cmd/main/main.go
-RUN go build -o /app/migrate ./cmd/migrate/main.go
 
 # ============================================================
 # Stage 3: runtime
@@ -50,7 +49,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/myapp .
-COPY --from=builder /app/migrate .
 
 EXPOSE 8080
 
