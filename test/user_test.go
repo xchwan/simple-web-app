@@ -69,8 +69,8 @@ func TestRegister_Success(t *testing.T) {
 		"email": "alice@example.com", "name": "Alice", "password": "pass1234",
 	}, "")
 
-	if w.Code != http.StatusOK {
-		t.Fatalf("expected 200, got %d", w.Code)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d", w.Code)
 	}
 	resp := decode[map[string]any](t, w)
 	if resp["email"] != "alice@example.com" {
