@@ -2,6 +2,7 @@ package test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -9,7 +10,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/redis/go-redis/v9"
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-app/internal/db"
 	"github.com/xchwan/simple-web-app/internal/user"
@@ -31,17 +31,32 @@ func newRouter() http.Handler {
 	return router
 }
 
-func newRedisClient() *redis.Client {
-	return db.ConnectRedis()
-}
 
-// TestMain 若未設定 DB_DSN 則跳過所有 integration test。
+// TestMain 若未設定 DB_DSN 則跳過所有 integration test，
+// 否則在跑測試前先清空資料，確保每次執行都是乾淨的狀態。
 func TestMain(m *testing.M) {
 	if os.Getenv("DB_DSN") == "" {
 		fmt.Println("⚠️  跳過 integration tests（請先執行 make up，再用 make test-integration）")
 		os.Exit(0)
 	}
+	cleanUp()
 	os.Exit(m.Run())
+}
+
+// cleanUp 清空所有資料表與 Redis session，確保測試隔離。
+func cleanUp() {
+	database, err := db.Connect()
+	if err != nil {
+		panic("DB 連線失敗: " + err.Error())
+	}
+	database.Exec("DELETE FROM bookings")
+	database.Exec("DELETE FROM tickets")
+	database.Exec("DELETE FROM events")
+	database.Exec("DELETE FROM wallets")
+	database.Exec("DELETE FROM users")
+
+	rdb := db.ConnectRedis()
+	rdb.FlushDB(context.Background())
 }
 
 // ===== 測試輔助函式 =====
