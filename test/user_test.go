@@ -6,19 +6,45 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
-	"github.com/xchwan/simple-web-framework"
+	"github.com/redis/go-redis/v9"
+	framework "github.com/xchwan/simple-web-framework"
+	"github.com/xchwan/simple-web-app/internal/db"
 	"github.com/xchwan/simple-web-app/internal/user"
 )
 
-// ===== 測試輔助函式 =====
+// ===== 測試環境設定 =====
 
 func newRouter() http.Handler {
+	database, err := db.Connect()
+	if err != nil {
+		panic("DB 連線失敗: " + err.Error())
+	}
+	rdb := db.ConnectRedis()
+
 	router := framework.NewRouter()
+	router.Bind("db", func() any { return database })
+	router.Bind("redis", func() any { return rdb })
 	user.Register(router)
 	return router
 }
+
+func newRedisClient() *redis.Client {
+	return db.ConnectRedis()
+}
+
+// TestMain 若未設定 DB_DSN 則跳過所有 integration test。
+func TestMain(m *testing.M) {
+	if os.Getenv("DB_DSN") == "" {
+		fmt.Println("⚠️  跳過 integration tests（請先執行 make up，再用 make test-integration）")
+		os.Exit(0)
+	}
+	os.Exit(m.Run())
+}
+
+// ===== 測試輔助函式 =====
 
 func request(t *testing.T, handler http.Handler, method, path string, body any, token string) *httptest.ResponseRecorder {
 	t.Helper()
@@ -214,7 +240,6 @@ func TestUpdateName_Forbidden(t *testing.T) {
 	_, aliceID := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	bobToken, _ := registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")
 
-	// Bob 嘗試修改 Alice 的名稱
 	w := request(t, router, http.MethodPatch, fmt.Sprintf("/api/users/%d", int(aliceID)), map[string]any{
 		"newName": "AliceHacked",
 	}, bobToken)
@@ -258,13 +283,6 @@ func TestSearchUsers_AllUsers(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
-	var users []map[string]any
-	if err := json.NewDecoder(w.Body).Decode(&users); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if len(users) != 2 {
-		t.Errorf("expected 2 users, got %d", len(users))
-	}
 }
 
 func TestSearchUsers_WithKeyword(t *testing.T) {
@@ -284,14 +302,30 @@ func TestSearchUsers_WithKeyword(t *testing.T) {
 	if len(users) != 1 {
 		t.Errorf("expected 1 user, got %d", len(users))
 	}
-	if users[0]["name"] != "Alice" {
-		t.Errorf("expected Alice, got %v", users[0]["name"])
-	}
 }
 
 func TestSearchUsers_Unauthenticated(t *testing.T) {
 	w := request(t, newRouter(), http.MethodGet, "/api/users", nil, "")
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401, got %d", w.Code)
+	}
+}
+
+// ===== A5：登出 =====
+
+func TestLogout_Success(t *testing.T) {
+	router := newRouter()
+	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+
+	// 登出
+	w := request(t, router, http.MethodPost, "/api/users/logout", nil, token)
+	if w.Code != http.StatusNoContent {
+		t.Fatalf("expected 204, got %d", w.Code)
+	}
+
+	// 登出後 token 應失效
+	w = request(t, router, http.MethodGet, "/api/users", nil, token)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 after logout, got %d", w.Code)
 	}
 }

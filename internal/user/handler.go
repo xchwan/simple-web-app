@@ -3,13 +3,11 @@ package user
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
-	"github.com/xchwan/simple-web-framework"
+	framework "github.com/xchwan/simple-web-framework"
 )
 
 // UserHandler 負責處理會員相關的 HTTP 請求。
-// service 在每個 request 時從 container 動態取得，以支援 HttpRequestScope。
 type UserHandler struct{}
 
 // NewUserHandler 建立一個 UserHandler。
@@ -57,16 +55,16 @@ type loginResponse struct {
 // Register 處理 POST /api/users。
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
-	framework.ParseRequest(r, &req)
+	if err := framework.ParseOrRespond(w, r, &req); err != nil {
+		return
+	}
 	u, err := h.service(r).Register(req.Email, req.Name, req.Password)
 	if err != nil {
 		framework.HandleError(w, r, err)
 		return
 	}
 	framework.Respond(w, r, http.StatusCreated, userResponse{
-		ID:    u.ID,
-		Email: u.Email,
-		Name:  u.Name,
+		ID: u.ID, Email: u.Email, Name: u.Name,
 	})
 }
 
@@ -76,27 +74,26 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	if err := framework.ParseOrRespond(w, r, &req); err != nil {
 		return
 	}
-	u, err := h.service(r).Login(req.Email, req.Password)
+	u, token, err := h.service(r).Login(req.Email, req.Password)
 	if err != nil {
 		framework.HandleError(w, r, err)
 		return
 	}
 	framework.Respond(w, r, http.StatusOK, loginResponse{
-		ID:    u.ID,
-		Email: u.Email,
-		Name:  u.Name,
-		Token: u.Token,
+		ID: u.ID, Email: u.Email, Name: u.Name, Token: token,
 	})
 }
 
-// UpdateName 處理 PATCH /api/users/{userId}。
+// Logout 處理 POST /api/users/logout（需 Auth middleware）。
+func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	token := extractBearerToken(r)
+	h.service(r).Logout(token)
+	framework.Respond(w, r, http.StatusNoContent, nil)
+}
+
+// UpdateName 處理 PATCH /api/users/{userId}（需 Auth middleware）。
 func (h *UserHandler) UpdateName(w http.ResponseWriter, r *http.Request) {
-	token := extractToken(r)
-	caller, err := h.service(r).Authenticate(token)
-	if err != nil {
-		framework.HandleError(w, r, err)
-		return
-	}
+	caller := Caller(r)
 
 	targetID, err := strconv.Atoi(framework.PathParam(r, "userId"))
 	if err != nil {
@@ -116,14 +113,8 @@ func (h *UserHandler) UpdateName(w http.ResponseWriter, r *http.Request) {
 	framework.Respond(w, r, http.StatusNoContent, nil)
 }
 
-// SearchUsers 處理 GET /api/users。
+// SearchUsers 處理 GET /api/users（需 Auth middleware）。
 func (h *UserHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
-	token := extractToken(r)
-	if _, err := h.service(r).Authenticate(token); err != nil {
-		framework.HandleError(w, r, err)
-		return
-	}
-
 	keyword := r.URL.Query().Get("keyword")
 	users := h.service(r).SearchUsers(keyword)
 
@@ -132,16 +123,4 @@ func (h *UserHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 		result[i] = userResponse{ID: u.ID, Email: u.Email, Name: u.Name}
 	}
 	framework.Respond(w, r, http.StatusOK, result)
-}
-
-// ===== 私有輔助函式 =====
-
-// extractToken 從 Authorization: Bearer <token> 標頭取出 token。
-func extractToken(r *http.Request) string {
-	auth := r.Header.Get("Authorization")
-	parts := strings.SplitN(auth, " ", 2)
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return ""
-	}
-	return parts[1]
 }

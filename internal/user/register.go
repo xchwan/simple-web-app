@@ -3,9 +3,11 @@ package user
 import (
 	"net/http"
 
-	"github.com/xchwan/simple-web-framework"
+	"github.com/redis/go-redis/v9"
+	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/scope"
+	"gorm.io/gorm"
 )
 
 // Register 向 router 註冊 user 相關的依賴、例外規則與路由。
@@ -21,19 +23,27 @@ func Register(router *framework.Router) {
 	)
 
 	router.Bind("userRepo", func() any {
-		return NewUserRepository()
+		db := router.Resolve("db").(*gorm.DB)
+		return NewUserRepository(db)
 	})
 	router.Bind("userService", func() any {
 		repo := router.Resolve("userRepo").(*UserRepository)
-		return NewUserService(repo)
+		rdb := router.Resolve("redis").(*redis.Client)
+		return NewUserService(repo, rdb)
 	}, scope.NewHttpRequestScope())
 	router.Bind("userHandler", func() any {
 		return NewUserHandler()
 	})
 
 	h := router.Resolve("userHandler").(*UserHandler)
+
+	// 公開路由（不需登入）
 	router.POST("/api/users", h.Register)
 	router.POST("/api/users/login", h.Login)
-	router.PATCH("/api/users/{userId}", h.UpdateName)
-	router.GET("/api/users", h.SearchUsers)
+
+	// 需要登入的路由
+	protected := router.Group("/api", Auth)
+	protected.POST("/users/logout", h.Logout)
+	protected.PATCH("/users/{userId}", h.UpdateName)
+	protected.GET("/users", h.SearchUsers)
 }

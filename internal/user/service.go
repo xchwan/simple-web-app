@@ -1,21 +1,31 @@
 package user
 
 import (
+	"context"
 	"crypto/sha256"
 	"fmt"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
+)
+
+const (
+	sessionPrefix = "session:"
+	sessionTTL    = 24 * time.Hour
 )
 
 // UserService 負責會員相關的業務邏輯。
 type UserService struct {
-	repo *UserRepository
+	repo  *UserRepository
+	redis *redis.Client
 }
 
 // NewUserService 建立一個 UserService。
-func NewUserService(repo *UserRepository) *UserService {
-	return &UserService{repo: repo}
+func NewUserService(repo *UserRepository, rdb *redis.Client) *UserService {
+	return &UserService{repo: repo, redis: rdb}
 }
 
 // Register 驗證並新增一位會員。
@@ -34,29 +44,45 @@ func (s *UserService) Register(email, name, password string) (*User, error) {
 	return u, nil
 }
 
-// Login 驗證帳密並產生 token。
-func (s *UserService) Login(email, password string) (*User, error) {
+// Login 驗證帳密，產生 token 存入 Redis 並回傳。
+func (s *UserService) Login(email, password string) (*User, string, error) {
 	if !validateEmail(email) || !validateLength(password, 5, 32) {
-		return nil, ErrLoginFormatInvalid
+		return nil, "", ErrLoginFormatInvalid
 	}
 	u, exists := s.repo.FindByEmailAndPassword(email, hashPassword(password))
 	if !exists {
-		return nil, ErrCredentialsInvalid
+		return nil, "", ErrCredentialsInvalid
 	}
-	u.Token = uuid.New().String()
-	return u, nil
+	token := uuid.New().String()
+	if err := s.redis.Set(context.Background(), sessionPrefix+token, u.ID, sessionTTL).Err(); err != nil {
+		return nil, "", err
+	}
+	return u, token, nil
 }
 
-// Authenticate 驗證 token 並回傳對應的會員。
+// Authenticate 從 Redis 驗證 token，回傳對應的會員。
 func (s *UserService) Authenticate(token string) (*User, error) {
-	if !validateLength(token, 36, 60) {
+	if token == "" {
 		return nil, ErrTokenInvalid
 	}
-	u, exists := s.repo.FindByToken(token)
+	val, err := s.redis.Get(context.Background(), sessionPrefix+token).Result()
+	if err != nil {
+		return nil, ErrTokenInvalid
+	}
+	userID, err := strconv.Atoi(val)
+	if err != nil {
+		return nil, ErrTokenInvalid
+	}
+	u, exists := s.repo.FindByID(userID)
 	if !exists {
 		return nil, ErrTokenInvalid
 	}
 	return u, nil
+}
+
+// Logout 從 Redis 刪除 session token。
+func (s *UserService) Logout(token string) {
+	s.redis.Del(context.Background(), sessionPrefix+token)
 }
 
 // UpdateName 驗證身份並修改會員名稱。

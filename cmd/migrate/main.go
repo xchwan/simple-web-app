@@ -27,5 +27,13 @@ func main() {
 		log.Fatalf("Migration 失敗: %v", err)
 	}
 
+	// token 欄位已移至 Redis，從 users 表移除
+	if database.Migrator().HasColumn(&user.User{}, "token") {
+		if err := database.Migrator().DropColumn(&user.User{}, "token"); err != nil {
+			log.Fatalf("移除 token 欄位失敗: %v", err)
+		}
+		log.Println("已移除 users.token 欄位")
+	}
+
 	log.Println("Migration 完成")
 }

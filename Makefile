@@ -38,6 +38,15 @@ run:
 test:
 	@echo "透過 Docker 執行測試..."
 	$(DOCKER_RUN) go test ./test/... -v
+
+# Integration test：需先 make up，用 dev image 連進 compose 網路執行
+test-integration:
+	docker run --rm \
+		--network simple-web-app_default \
+		-v $(PWD):/app -w /app \
+		-e DB_DSN="app:secret@tcp(mysql:3306)/appdb?parseTime=true" \
+		-e REDIS_ADDR="redis:6379" \
+		$(IMAGE_NAME) go test ./test/... -v
 # ===== 檢查與測試 (Check & Testing) =====
 
 staticcheck:
@@ -81,4 +90,4 @@ down-v:
 logs:
 	docker compose logs -f app
 
-.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs migrate
+.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs migrate test-integration
