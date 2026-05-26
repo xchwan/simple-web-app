@@ -12,6 +12,15 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// User 代表系統中的會員。
+// Token 不存 DB，改存 Redis（key: session:{token} → userID）。
+type User struct {
+	ID           int    `gorm:"primarykey;autoIncrement"`
+	Email        string `gorm:"uniqueIndex;not null;size:255"`
+	Name         string `gorm:"not null;size:255"`
+	PasswordHash string `gorm:"not null;size:255"`
+}
+
 const (
 	sessionPrefix = "session:"
 	sessionTTL    = 24 * time.Hour
@@ -19,12 +28,12 @@ const (
 
 // UserService 負責會員相關的業務邏輯。
 type UserService struct {
-	repo  *UserRepository
+	repo  *UserDB
 	redis *redis.Client
 }
 
 // NewUserService 建立一個 UserService。
-func NewUserService(repo *UserRepository, rdb *redis.Client) *UserService {
+func NewUserService(repo *UserDB, rdb *redis.Client) *UserService {
 	return &UserService{repo: repo, redis: rdb}
 }
 

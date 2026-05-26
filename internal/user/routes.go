@@ -24,10 +24,10 @@ func SetupRoutes(router *framework.Router) {
 
 	router.Bind("userRepo", func() any {
 		db := router.Resolve("db").(*gorm.DB)
-		return NewUserRepository(db)
+		return NewUserDB(db)
 	})
 	router.Bind("userService", func() any {
-		repo := router.Resolve("userRepo").(*UserRepository)
+		repo := router.Resolve("userRepo").(*UserDB)
 		rdb := router.Resolve("redis").(*redis.Client)
 		return NewUserService(repo, rdb)
 	}, scope.NewHttpRequestScope())
