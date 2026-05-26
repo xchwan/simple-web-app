@@ -10,8 +10,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// Register 向 router 註冊 user 相關的依賴、例外規則與路由。
-func Register(router *framework.Router) {
+// SetupRoutes 向 router 註冊 user 相關的依賴、例外規則與路由。
+func SetupRoutes(router *framework.Router) {
 	router.AddPlugin(plugin.NewExceptionMapperPlugin().
 		On(ErrEmailDuplicate, http.StatusBadRequest, "Duplicate email").
 		On(ErrRegisterFormatInvalid, http.StatusBadRequest, "Registration's format incorrect.").

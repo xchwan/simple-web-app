@@ -20,7 +20,7 @@ func main() {
 	router.Bind("db", func() any { return database })
 	router.Bind("redis", func() any { return rdb })
 
-	user.Register(router)
+	user.SetupRoutes(router)
 
 	if err := router.Run(":8080"); err != nil {
 		log.Fatal(err)
