@@ -12,9 +12,9 @@ all: staticcheck format test build
 
 # ===== 開發環境管理 =====
 
-# 建立 Docker 映像檔
+# 建立 dev Docker 映像檔（供 make 指令使用）
 docker-build:
-	docker build -t $(IMAGE_NAME) .
+	docker build -t $(IMAGE_NAME) --target dev .
 
 # 刪除 Docker image
 docker-clean:
@@ -59,4 +59,22 @@ clean:
 	$(DOCKER_RUN) go clean
 	rm -f $(BINARY_NAME)
 
-.PHONY: all build run test tidy clean staticcheck shell docker-build format docker-clean
+# ===== Docker Compose =====
+
+# 啟動所有服務（背景執行，重新 build app）
+up:
+	docker compose up --build -d
+
+# 停止並移除所有容器
+down:
+	docker compose down
+
+# 停止並移除容器＋volumes（清除 DB 資料）
+down-v:
+	docker compose down -v
+
+# 即時查看 app 的 log
+logs:
+	docker compose logs -f app
+
+.PHONY: all build run test tidy clean staticcheck shell docker-build docker-clean format up down down-v logs
