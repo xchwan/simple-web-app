@@ -4,7 +4,7 @@ import (
 	"log"
 
 	framework "github.com/xchwan/simple-web-framework"
-	"github.com/xchwan/simple-web-framework/plugin"
+	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-app/internal/db"
 	"github.com/xchwan/simple-web-app/internal/user"
 )
@@ -17,7 +17,7 @@ func main() {
 
 	rdb := db.ConnectRedis()
 
-	docs := plugin.NewDocPlugin()
+	docs := apidoc.NewDocPlugin()
 
 	router := framework.NewRouter()
 	router.AddPlugin(docs)
