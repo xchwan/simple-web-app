@@ -25,9 +25,7 @@ func newRouter() http.Handler {
 	rdb := db.ConnectRedis()
 
 	router := framework.NewRouter()
-	router.Bind("db", func() any { return database })
-	router.Bind("redis", func() any { return rdb })
-	user.SetupRoutes(router)
+	user.SetupRoutes(router, database, rdb)
 	return router
 }
 

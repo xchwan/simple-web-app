@@ -72,6 +72,8 @@ github.com/xchwan/simple-web-framework v0.0.0-20260526091952-070ee6032870 h1:lpo
 github.com/xchwan/simple-web-framework v0.0.0-20260526091952-070ee6032870/go.mod h1:5GnNUVl95fY7ay8VNYZHnzy171EWiGNP23M9BWA2VW4=
 github.com/xchwan/simple-web-framework v0.0.0-20260528034622-e89d15d8bd1a h1:ppF7ZxuQRXCQEdqpOi/BsUmebq/AR+d5Q1NKVZP8MY4=
 github.com/xchwan/simple-web-framework v0.0.0-20260528034622-e89d15d8bd1a/go.mod h1:5GnNUVl95fY7ay8VNYZHnzy171EWiGNP23M9BWA2VW4=
+github.com/xchwan/simple-web-framework v0.0.0-20260528043313-56235082050d h1:G1h4941s1BN6/pq3Q3yOdU7XCY0JqXjbl3FjBBoE1T4=
+github.com/xchwan/simple-web-framework v0.0.0-20260528043313-56235082050d/go.mod h1:5GnNUVl95fY7ay8VNYZHnzy171EWiGNP23M9BWA2VW4=
 github.com/zeebo/xxh3 v1.1.0 h1:s7DLGDK45Dyfg7++yxI0khrfwq9661w9EN78eP/UZVs=
 github.com/zeebo/xxh3 v1.1.0/go.mod h1:IisAie1LELR4xhVinxWS5+zf1lA4p0MW4T+w+W07F5s=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=
