@@ -1,4 +1,4 @@
-CREATE TABLE bookings (
+CREATE TABLE IF NOT EXISTS bookings (
     id        INT                              NOT NULL AUTO_INCREMENT,
     user_id   INT                              NOT NULL,
     ticket_id INT                              NOT NULL,

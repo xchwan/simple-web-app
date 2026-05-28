@@ -32,7 +32,23 @@ func Migrate(gdb *gorm.DB) error {
 		return err
 	}
 
-	if err := m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
+	if err := m.Up(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			return nil
+		}
+		// Dirty state 代表上次 migration 執行到一半失敗，version 被標記為 dirty。
+		// 搭配 idempotent SQL（CREATE TABLE IF NOT EXISTS），可以安全地 force 清除 dirty
+		// 旗標後重新執行，不會有副作用。
+		var dirtyErr migrate.ErrDirty
+		if errors.As(err, &dirtyErr) {
+			if forceErr := m.Force(dirtyErr.Version); forceErr != nil {
+				return forceErr
+			}
+			if upErr := m.Up(); upErr != nil && !errors.Is(upErr, migrate.ErrNoChange) {
+				return upErr
+			}
+			return nil
+		}
 		return err
 	}
 	return nil

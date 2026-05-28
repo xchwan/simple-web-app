@@ -1,4 +1,4 @@
-CREATE TABLE wallets (
+CREATE TABLE IF NOT EXISTS wallets (
     id      INT            NOT NULL AUTO_INCREMENT,
     user_id INT            NOT NULL,
     name    VARCHAR(255)   NOT NULL,
