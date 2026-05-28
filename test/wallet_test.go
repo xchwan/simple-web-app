@@ -19,6 +19,7 @@ func createWallet(t *testing.T, handler http.Handler, token, name string) map[st
 // ===== B1：建立錢包 =====
 
 func TestCreateWallet_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
@@ -51,6 +52,7 @@ func TestCreateWallet_Unauthenticated(t *testing.T) {
 }
 
 func TestCreateWallet_NameFormatInvalid(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
@@ -76,8 +78,9 @@ func TestCreateWallet_NameFormatInvalid(t *testing.T) {
 // ===== B2：列出錢包 =====
 
 func TestListWallets_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
-	token, _ := registerAndLogin(t, router, "wallet-list@example.com", "WalletList", "pass1234")
+	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	createWallet(t, router, token, "Wallet A")
 	createWallet(t, router, token, "Wallet B")
 
@@ -93,9 +96,10 @@ func TestListWallets_Success(t *testing.T) {
 }
 
 func TestListWallets_OnlyOwnWallets(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
-	aliceToken, _ := registerAndLogin(t, router, "wallet-only-alice@example.com", "WalletAlice", "pass1234")
-	bobToken, _ := registerAndLogin(t, router, "wallet-only-bob@example.com", "WalletBob", "pass1234")
+	aliceToken, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+	bobToken, _ := registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")
 	createWallet(t, router, aliceToken, "Alice Wallet")
 	createWallet(t, router, bobToken, "Bob Wallet")
 
@@ -113,6 +117,7 @@ func TestListWallets_OnlyOwnWallets(t *testing.T) {
 // ===== B3：取得錢包 =====
 
 func TestGetWallet_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	wallet := createWallet(t, router, token, "Main Wallet")
@@ -126,6 +131,7 @@ func TestGetWallet_Success(t *testing.T) {
 }
 
 func TestGetWallet_Forbidden(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	aliceToken, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	bobToken, _ := registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")
@@ -140,6 +146,7 @@ func TestGetWallet_Forbidden(t *testing.T) {
 }
 
 func TestGetWallet_NotFound(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 

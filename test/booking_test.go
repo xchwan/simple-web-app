@@ -8,6 +8,7 @@ import (
 // ===== E1：列出訂票 =====
 
 func TestListBookings_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
@@ -32,6 +33,7 @@ func TestListBookings_Unauthenticated(t *testing.T) {
 // ===== E2：取得訂票 =====
 
 func TestGetBooking_NotFound(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 

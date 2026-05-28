@@ -21,6 +21,7 @@ func createEvent(t *testing.T, handler http.Handler, token string) map[string]an
 // ===== C1：建立活動 =====
 
 func TestCreateEvent_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
@@ -53,6 +54,7 @@ func TestCreateEvent_Unauthenticated(t *testing.T) {
 }
 
 func TestCreateEvent_FormatInvalid(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
@@ -76,6 +78,7 @@ func TestCreateEvent_FormatInvalid(t *testing.T) {
 // ===== C2：取得 / 搜尋活動 =====
 
 func TestGetEvent_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -89,6 +92,7 @@ func TestGetEvent_Success(t *testing.T) {
 }
 
 func TestGetEvent_NotFound(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
@@ -100,6 +104,7 @@ func TestGetEvent_NotFound(t *testing.T) {
 }
 
 func TestSearchEvents_AllEvents(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	createEvent(t, router, token)
@@ -111,30 +116,30 @@ func TestSearchEvents_AllEvents(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 	events := decode[[]map[string]any](t, w)
-	if len(events) < 2 {
-		t.Errorf("expected at least 2 events, got %d", len(events))
+	if len(events) != 2 {
+		t.Errorf("expected 2 events, got %d", len(events))
 	}
 }
 
 func TestSearchEvents_WithKeyword(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
-	// 使用不會與其他測試撞名的 unique 關鍵字
 	request(t, router, http.MethodPost, "/api/events", map[string]any{
-		"name": "XyloFest2099", "startAt": "2026-09-01T20:00:00Z",
+		"name": "Rock Concert", "startAt": "2026-09-01T20:00:00Z",
 	}, token)
 	request(t, router, http.MethodPost, "/api/events", map[string]any{
 		"name": "Jazz Night", "startAt": "2026-10-01T20:00:00Z",
 	}, token)
 
-	w := request(t, router, http.MethodGet, "/api/events?keyword=XyloFest2099", nil, token)
+	w := request(t, router, http.MethodGet, "/api/events?keyword=Rock", nil, token)
 
 	events := decode[[]map[string]any](t, w)
 	if len(events) != 1 {
 		t.Errorf("expected 1 event, got %d", len(events))
 	}
-	if events[0]["name"] != "XyloFest2099" {
+	if events[0]["name"] != "Rock Concert" {
 		t.Errorf("unexpected event: %v", events[0]["name"])
 	}
 }
@@ -142,6 +147,7 @@ func TestSearchEvents_WithKeyword(t *testing.T) {
 // ===== C3：更新活動 =====
 
 func TestUpdateEvent_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -161,6 +167,7 @@ func TestUpdateEvent_Success(t *testing.T) {
 }
 
 func TestUpdateEvent_Unauthenticated(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -175,6 +182,7 @@ func TestUpdateEvent_Unauthenticated(t *testing.T) {
 }
 
 func TestUpdateEvent_Forbidden(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	aliceToken, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	bobToken, _ := registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")
@@ -192,6 +200,7 @@ func TestUpdateEvent_Forbidden(t *testing.T) {
 // ===== C4：刪除活動 =====
 
 func TestDeleteEvent_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -211,6 +220,7 @@ func TestDeleteEvent_Success(t *testing.T) {
 }
 
 func TestDeleteEvent_Unauthenticated(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -223,6 +233,7 @@ func TestDeleteEvent_Unauthenticated(t *testing.T) {
 }
 
 func TestDeleteEvent_Forbidden(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	aliceToken, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	bobToken, _ := registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")

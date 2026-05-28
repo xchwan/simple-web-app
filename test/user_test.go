@@ -40,7 +40,6 @@ func newRouter() http.Handler {
 	return router
 }
 
-
 // TestMain 若未設定 DB_DSN 則跳過所有 integration test，
 // 否則先確保 schema 存在，再清空資料，確保每次執行都是乾淨的狀態。
 func TestMain(m *testing.M) {
@@ -73,6 +72,13 @@ func cleanUp() {
 
 	rdb := db.ConnectRedis()
 	rdb.FlushDB(context.Background())
+}
+
+// withCleanDB 在測試前後各清空一次 DB，確保每個測試完全隔離。
+func withCleanDB(t *testing.T) {
+	t.Helper()
+	cleanUp()
+	t.Cleanup(cleanUp)
 }
 
 // ===== 測試輔助函式 =====
@@ -122,18 +128,19 @@ func registerAndLogin(t *testing.T, handler http.Handler, email, name, password 
 // ===== A1：會員註冊 =====
 
 func TestRegister_Success(t *testing.T) {
+	withCleanDB(t)
 	w := request(t, newRouter(), http.MethodPost, "/api/users", map[string]any{
-		"email": "register-success@example.com", "name": "Tester", "password": "pass1234",
+		"email": "alice@example.com", "name": "Alice", "password": "pass1234",
 	}, "")
 
 	if w.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", w.Code)
 	}
 	resp := decode[map[string]any](t, w)
-	if resp["email"] != "register-success@example.com" {
+	if resp["email"] != "alice@example.com" {
 		t.Errorf("email mismatch: %v", resp["email"])
 	}
-	if resp["name"] != "Tester" {
+	if resp["name"] != "Alice" {
 		t.Errorf("name mismatch: %v", resp["name"])
 	}
 	if resp["id"] == nil {
@@ -168,6 +175,7 @@ func TestRegister_FormatInvalid(t *testing.T) {
 }
 
 func TestRegister_DuplicateEmail(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	request(t, router, http.MethodPost, "/api/users", map[string]any{
 		"email": "alice@example.com", "name": "Alice", "password": "pass1234",
@@ -183,6 +191,7 @@ func TestRegister_DuplicateEmail(t *testing.T) {
 // ===== A2：會員登入 =====
 
 func TestLogin_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	request(t, router, http.MethodPost, "/api/users", map[string]any{
 		"email": "alice@example.com", "name": "Alice", "password": "pass1234",
@@ -205,6 +214,7 @@ func TestLogin_Success(t *testing.T) {
 }
 
 func TestLogin_CredentialsInvalid(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	request(t, router, http.MethodPost, "/api/users", map[string]any{
 		"email": "alice@example.com", "name": "Alice", "password": "pass1234",
@@ -242,6 +252,7 @@ func TestLogin_FormatInvalid(t *testing.T) {
 // ===== A3：修改會員名稱 =====
 
 func TestUpdateName_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, id := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
@@ -255,6 +266,7 @@ func TestUpdateName_Success(t *testing.T) {
 }
 
 func TestUpdateName_Unauthenticated(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	_, id := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
@@ -267,6 +279,7 @@ func TestUpdateName_Unauthenticated(t *testing.T) {
 }
 
 func TestUpdateName_Forbidden(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	_, aliceID := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	bobToken, _ := registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")
@@ -280,6 +293,7 @@ func TestUpdateName_Forbidden(t *testing.T) {
 }
 
 func TestUpdateName_FormatInvalid(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, id := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
@@ -305,6 +319,7 @@ func TestUpdateName_FormatInvalid(t *testing.T) {
 // ===== A4：查詢會員列表 =====
 
 func TestSearchUsers_AllUsers(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")
@@ -317,6 +332,7 @@ func TestSearchUsers_AllUsers(t *testing.T) {
 }
 
 func TestSearchUsers_WithKeyword(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")
@@ -345,6 +361,7 @@ func TestSearchUsers_Unauthenticated(t *testing.T) {
 // ===== A5：登出 =====
 
 func TestLogout_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 

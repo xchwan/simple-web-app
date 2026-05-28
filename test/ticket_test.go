@@ -20,6 +20,7 @@ func createTickets(t *testing.T, handler http.Handler, token string, eventID int
 // ===== D1：批次建立票券 =====
 
 func TestBatchCreateTickets_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -48,6 +49,7 @@ func TestBatchCreateTickets_Success(t *testing.T) {
 }
 
 func TestBatchCreateTickets_Unauthenticated(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -62,6 +64,7 @@ func TestBatchCreateTickets_Unauthenticated(t *testing.T) {
 }
 
 func TestBatchCreateTickets_Forbidden(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	aliceToken, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	bobToken, _ := registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")
@@ -77,6 +80,7 @@ func TestBatchCreateTickets_Forbidden(t *testing.T) {
 }
 
 func TestBatchCreateTickets_EventNotFound(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
@@ -89,6 +93,7 @@ func TestBatchCreateTickets_EventNotFound(t *testing.T) {
 }
 
 func TestBatchCreateTickets_FormatInvalid(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -117,6 +122,7 @@ func TestBatchCreateTickets_FormatInvalid(t *testing.T) {
 // ===== D2：列出票券 =====
 
 func TestListTickets_ByEvent(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -138,6 +144,7 @@ func TestListTickets_ByEvent(t *testing.T) {
 }
 
 func TestListTickets_FilterByStatus(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -165,6 +172,7 @@ func TestListTickets_FilterByStatus(t *testing.T) {
 // ===== D3：取得票券 =====
 
 func TestGetTicket_Success(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 	event := createEvent(t, router, token)
@@ -186,6 +194,7 @@ func TestGetTicket_Success(t *testing.T) {
 }
 
 func TestGetTicket_NotFound(t *testing.T) {
+	withCleanDB(t)
 	router := newRouter()
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
