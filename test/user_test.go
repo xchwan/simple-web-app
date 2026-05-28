@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	framework "github.com/xchwan/simple-web-framework"
+	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-app/internal/db"
 	"github.com/xchwan/simple-web-app/internal/user"
 )
@@ -24,8 +25,10 @@ func newRouter() http.Handler {
 	}
 	rdb := db.ConnectRedis()
 
+	mapper := plugin.NewExceptionMapperPlugin()
 	router := framework.NewRouter()
-	user.SetupRoutes(router, database, rdb)
+	router.AddPlugin(mapper)
+	user.SetupRoutes(router, database, rdb, mapper)
 	return router
 }
 

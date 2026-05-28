@@ -12,17 +12,16 @@ import (
 )
 
 // SetupRoutes 向 router 註冊 user 相關的依賴、例外規則與路由。
-// database 與 rdb 直接以閉包捕捉，不需透過 container.Resolve。
-func SetupRoutes(router *framework.Router, database *gorm.DB, rdb *redis.Client) {
-	router.AddPlugin(plugin.NewExceptionMapperPlugin().
+// database 與 rdb 直接以閉包捕捉；mapper 由 main.go 統一建立並傳入。
+func SetupRoutes(router *framework.Router, database *gorm.DB, rdb *redis.Client, mapper *plugin.ExceptionMapperPlugin) {
+	mapper.
 		On(ErrEmailDuplicate, http.StatusBadRequest, "Duplicate email").
 		On(ErrRegisterFormatInvalid, http.StatusBadRequest, "Registration's format incorrect.").
 		On(ErrCredentialsInvalid, http.StatusBadRequest, "Credentials Invalid").
 		On(ErrLoginFormatInvalid, http.StatusBadRequest, "Login's format incorrect.").
 		On(ErrTokenInvalid, http.StatusUnauthorized, "Can't authenticate who you are.").
 		On(ErrForbidden, http.StatusForbidden, "Forbidden").
-		On(ErrNameFormatInvalid, http.StatusBadRequest, "Name's format invalid."),
-	)
+		On(ErrNameFormatInvalid, http.StatusBadRequest, "Name's format invalid.")
 
 	userDB := NewUserDB(database)
 	router.Bind("userService", func() any {

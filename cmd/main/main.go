@@ -4,9 +4,14 @@ import (
 	"log"
 
 	framework "github.com/xchwan/simple-web-framework"
+	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
+	"github.com/xchwan/simple-web-app/internal/booking"
 	"github.com/xchwan/simple-web-app/internal/db"
+	"github.com/xchwan/simple-web-app/internal/event"
+	"github.com/xchwan/simple-web-app/internal/ticket"
 	"github.com/xchwan/simple-web-app/internal/user"
+	"github.com/xchwan/simple-web-app/internal/wallet"
 )
 
 func main() {
@@ -22,11 +27,17 @@ func main() {
 	rdb := db.ConnectRedis()
 
 	docs := apidoc.NewDocPlugin()
+	mapper := plugin.NewExceptionMapperPlugin()
 
 	router := framework.NewRouter()
 	router.AddPlugin(docs)
+	router.AddPlugin(mapper)
 
-	user.SetupRoutes(router, database, rdb)
+	user.SetupRoutes(router, database, rdb, mapper)
+	wallet.SetupRoutes(router, database, mapper)
+	event.SetupRoutes(router, database, mapper)
+	ticket.SetupRoutes(router, database, mapper)
+	booking.SetupRoutes(router, database, mapper)
 
 	router.GET("/docs", docs.UIHandler())
 	router.GET("/openapi.json", docs.SpecHandler())
