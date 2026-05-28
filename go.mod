@@ -7,7 +7,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.19.1
 	github.com/google/uuid v1.6.0
 	github.com/redis/go-redis/v9 v9.19.0
-	github.com/xchwan/simple-web-framework v0.0.0-20260528043313-56235082050d
+	github.com/xchwan/simple-web-framework v0.0.0-20260528054552-dbcf9f0d7878
 	gorm.io/driver/mysql v1.6.0
 	gorm.io/gorm v1.31.1
 )

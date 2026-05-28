@@ -7,6 +7,7 @@ import (
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
+	"github.com/xchwan/simple-web-framework/scope"
 	"gorm.io/gorm"
 )
 
@@ -25,7 +26,7 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, rdb *redis.Client,
 	userDB := NewUserDB(database)
 	router.Bind("userService", func() any {
 		return NewUserService(userDB, rdb)
-	})
+	}, scope.NewHttpRequestScope())
 
 	h := NewUserHandler()
 

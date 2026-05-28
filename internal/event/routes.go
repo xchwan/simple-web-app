@@ -6,6 +6,7 @@ import (
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
+	"github.com/xchwan/simple-web-framework/scope"
 	"github.com/xchwan/simple-web-app/internal/user"
 	"gorm.io/gorm"
 )
@@ -22,7 +23,7 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 	eventDB := NewEventDB(database)
 	router.Bind("eventService", func() any {
 		return NewEventService(eventDB)
-	})
+	}, scope.NewHttpRequestScope())
 
 	h := NewEventHandler()
 
