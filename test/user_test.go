@@ -12,8 +12,12 @@ import (
 
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-framework/plugin"
+	"github.com/xchwan/simple-web-app/internal/booking"
 	"github.com/xchwan/simple-web-app/internal/db"
+	"github.com/xchwan/simple-web-app/internal/event"
+	"github.com/xchwan/simple-web-app/internal/ticket"
 	"github.com/xchwan/simple-web-app/internal/user"
+	"github.com/xchwan/simple-web-app/internal/wallet"
 )
 
 // ===== 測試環境設定 =====
@@ -29,6 +33,10 @@ func newRouter() http.Handler {
 	router := framework.NewRouter()
 	router.AddPlugin(mapper)
 	user.SetupRoutes(router, database, rdb, mapper)
+	wallet.SetupRoutes(router, database, mapper)
+	event.SetupRoutes(router, database, mapper)
+	ticket.SetupRoutes(router, database, mapper)
+	booking.SetupRoutes(router, database, mapper)
 	return router
 }
 
@@ -115,17 +123,17 @@ func registerAndLogin(t *testing.T, handler http.Handler, email, name, password 
 
 func TestRegister_Success(t *testing.T) {
 	w := request(t, newRouter(), http.MethodPost, "/api/users", map[string]any{
-		"email": "alice@example.com", "name": "Alice", "password": "pass1234",
+		"email": "register-success@example.com", "name": "Tester", "password": "pass1234",
 	}, "")
 
 	if w.Code != http.StatusCreated {
 		t.Fatalf("expected 201, got %d", w.Code)
 	}
 	resp := decode[map[string]any](t, w)
-	if resp["email"] != "alice@example.com" {
+	if resp["email"] != "register-success@example.com" {
 		t.Errorf("email mismatch: %v", resp["email"])
 	}
-	if resp["name"] != "Alice" {
+	if resp["name"] != "Tester" {
 		t.Errorf("name mismatch: %v", resp["name"])
 	}
 	if resp["id"] == nil {
