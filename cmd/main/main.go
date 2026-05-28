@@ -28,7 +28,7 @@ func main() {
 	router.Bind("db", func() any { return database })
 	router.Bind("redis", func() any { return rdb })
 
-	user.SetupRoutes(router, docs)
+	user.SetupRoutes(router)
 
 	router.GET("/docs", docs.UIHandler())
 	router.GET("/openapi.json", docs.SpecHandler())
