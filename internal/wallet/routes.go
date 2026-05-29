@@ -1,10 +1,7 @@
 package wallet
 
 import (
-	"net/http"
-
 	framework "github.com/xchwan/simple-web-framework"
-	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-framework/scope"
 	"github.com/xchwan/simple-web-app/internal/user"
@@ -12,13 +9,8 @@ import (
 )
 
 // SetupRoutes 向 router 註冊 wallet 相關的依賴與路由。
-// mapper 由 main.go 統一建立並傳入，各套件共用同一個 ExceptionMapperPlugin。
-func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.ExceptionMapperPlugin) {
-	mapper.
-		On(ErrNotFound, http.StatusNotFound, "Wallet not found").
-		On(ErrForbidden, http.StatusForbidden, "Forbidden").
-		On(ErrNameFormatInvalid, http.StatusBadRequest, "Wallet name format invalid")
-
+// 錯誤對應由 main.go 統一在 ExceptionMapperPlugin 設定。
+func SetupRoutes(router *framework.Router, database *gorm.DB) {
 	walletDB := NewWalletDB(database)
 	router.Bind("walletService", func() any {
 		return NewWalletService(walletDB)

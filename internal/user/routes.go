@@ -1,28 +1,16 @@
 package user
 
 import (
-	"net/http"
-
 	"github.com/redis/go-redis/v9"
 	framework "github.com/xchwan/simple-web-framework"
-	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-framework/scope"
 	"gorm.io/gorm"
 )
 
-// SetupRoutes 向 router 註冊 user 相關的依賴、例外規則與路由。
-// database 與 rdb 直接以閉包捕捉；mapper 由 main.go 統一建立並傳入。
-func SetupRoutes(router *framework.Router, database *gorm.DB, rdb *redis.Client, mapper *plugin.ExceptionMapperPlugin) {
-	mapper.
-		On(ErrEmailDuplicate, http.StatusBadRequest, "Duplicate email").
-		On(ErrRegisterFormatInvalid, http.StatusBadRequest, "Registration's format incorrect.").
-		On(ErrCredentialsInvalid, http.StatusBadRequest, "Credentials Invalid").
-		On(ErrLoginFormatInvalid, http.StatusBadRequest, "Login's format incorrect.").
-		On(ErrTokenInvalid, http.StatusUnauthorized, "Can't authenticate who you are.").
-		On(ErrForbidden, http.StatusForbidden, "Forbidden").
-		On(ErrNameFormatInvalid, http.StatusBadRequest, "Name's format invalid.")
-
+// SetupRoutes 向 router 註冊 user 相關的依賴與路由。
+// 錯誤對應由 main.go 統一在 ExceptionMapperPlugin 設定。
+func SetupRoutes(router *framework.Router, database *gorm.DB, rdb *redis.Client) {
 	userDB := NewUserDB(database)
 	router.Bind("userService", func() any {
 		return NewUserService(userDB, rdb)
