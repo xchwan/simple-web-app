@@ -1,5 +1,25 @@
 package booking
 
+import "time"
+
+// BookingStatus 代表訂票的狀態。
+type BookingStatus string
+
+const (
+	StatusConfirmed BookingStatus = "confirmed"
+	StatusCancelled BookingStatus = "cancelled"
+)
+
+// Booking 代表一筆訂票紀錄。
+type Booking struct {
+	ID       int           `gorm:"primarykey;autoIncrement"`
+	UserID   int           `gorm:"not null;index"`
+	TicketID int           `gorm:"not null;uniqueIndex"`
+	WalletID int           `gorm:"not null;index"`
+	Status   BookingStatus `gorm:"type:enum('confirmed','cancelled');not null;default:'confirmed'"`
+	BookedAt time.Time     `gorm:"not null;autoCreateTime"`
+}
+
 // BookingService 負責訂票相關的業務邏輯。
 // 注意：訂票（建立）涉及跨表格交易，待後續實作。
 type BookingService struct {
