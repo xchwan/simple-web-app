@@ -6,6 +6,7 @@ import (
 	"time"
 
 	framework "github.com/xchwan/simple-web-framework"
+	eventdb "github.com/xchwan/simple-web-app/internal/event/db"
 	"github.com/xchwan/simple-web-app/internal/user"
 )
 
@@ -75,10 +76,22 @@ func (h *EventHandler) Get(w http.ResponseWriter, r *http.Request) {
 	framework.Respond(w, r, http.StatusOK, toEventResponse(e))
 }
 
-// Search 處理 GET /api/events（可選 ?keyword=）。
+// Search 處理 GET /api/events（可選 ?keyword=&startFrom=&startTo=）。
 func (h *EventHandler) Search(w http.ResponseWriter, r *http.Request) {
-	keyword := r.URL.Query().Get("keyword")
-	events := h.service(r).Search(keyword)
+	q := eventdb.EventQuery{
+		Keyword: r.URL.Query().Get("keyword"),
+	}
+	if s := r.URL.Query().Get("startFrom"); s != "" {
+		if t, err := time.Parse("2006-01-02", s); err == nil {
+			q.StartFrom = &t
+		}
+	}
+	if s := r.URL.Query().Get("startTo"); s != "" {
+		if t, err := time.Parse("2006-01-02", s); err == nil {
+			q.StartTo = &t
+		}
+	}
+	events := h.service(r).Search(q)
 	result := make([]EventResponse, len(events))
 	for i, e := range events {
 		result[i] = toEventResponse(e)
@@ -121,7 +134,7 @@ func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	framework.Respond(w, r, http.StatusNoContent, nil)
 }
 
-func toEventResponse(e *Event) EventResponse {
+func toEventResponse(e *eventdb.Event) EventResponse {
 	return EventResponse{
 		ID:          e.ID,
 		OrganizerID: e.OrganizerID,

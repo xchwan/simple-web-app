@@ -28,12 +28,12 @@ const (
 
 // UserService 負責會員相關的業務邏輯。
 type UserService struct {
-	repo  *UserDB
+	repo  *MySQLUserRepository
 	redis *redis.Client
 }
 
 // NewUserService 建立一個 UserService。
-func NewUserService(repo *UserDB, rdb *redis.Client) *UserService {
+func NewUserService(repo *MySQLUserRepository, rdb *redis.Client) *UserService {
 	return &UserService{repo: repo, redis: rdb}
 }
 

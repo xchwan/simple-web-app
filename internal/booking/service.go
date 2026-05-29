@@ -23,11 +23,11 @@ type Booking struct {
 // BookingService 負責訂票相關的業務邏輯。
 // 注意：訂票（建立）涉及跨表格交易，待後續實作。
 type BookingService struct {
-	db *BookingDB
+	db *MySQLBookingRepository
 }
 
 // NewBookingService 建立一個 BookingService。
-func NewBookingService(db *BookingDB) *BookingService {
+func NewBookingService(db *MySQLBookingRepository) *BookingService {
 	return &BookingService{db: db}
 }
 

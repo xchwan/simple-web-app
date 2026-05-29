@@ -25,6 +25,7 @@ func main() {
 	}
 
 	rdb := db.ConnectRedis()
+	_ = db.ConnectElastic() // TODO: 傳入需要 ES 的 domain
 
 	docs := apidoc.NewDocPlugin()
 	mapper := plugin.NewExceptionMapperPlugin()

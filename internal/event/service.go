@@ -1,63 +1,58 @@
 package event
 
-import "time"
+import (
+	"time"
 
-// Event 代表一個活動。
-type Event struct {
-	ID          int       `gorm:"primarykey;autoIncrement"`
-	OrganizerID int       `gorm:"not null;index"`
-	Name        string    `gorm:"not null;size:255"`
-	Description string    `gorm:"type:text"`
-	StartAt     time.Time `gorm:"not null"`
-}
+	eventdb "github.com/xchwan/simple-web-app/internal/event/db"
+)
 
 // EventService 負責活動相關的業務邏輯。
 type EventService struct {
-	db *EventDB
+	repo eventdb.EventRepository
 }
 
 // NewEventService 建立一個 EventService。
-func NewEventService(db *EventDB) *EventService {
-	return &EventService{db: db}
+func NewEventService(repo eventdb.EventRepository) *EventService {
+	return &EventService{repo: repo}
 }
 
 // Create 建立一個新活動。
-func (s *EventService) Create(organizerID int, name, description string, startAt time.Time) (*Event, error) {
+func (s *EventService) Create(organizerID int, name, description string, startAt time.Time) (*eventdb.Event, error) {
 	if !validateLength(name, 1, 255) {
 		return nil, ErrNameFormatInvalid
 	}
 	if startAt.IsZero() {
 		return nil, ErrStartAtInvalid
 	}
-	e := &Event{
+	e := &eventdb.Event{
 		OrganizerID: organizerID,
 		Name:        name,
 		Description: description,
 		StartAt:     startAt,
 	}
-	if err := s.db.Save(e); err != nil {
+	if err := s.repo.Save(e); err != nil {
 		return nil, err
 	}
 	return e, nil
 }
 
 // GetByID 依編號取得活動。
-func (s *EventService) GetByID(id int) (*Event, error) {
-	e, exists := s.db.FindByID(id)
+func (s *EventService) GetByID(id int) (*eventdb.Event, error) {
+	e, exists := s.repo.FindByID(id)
 	if !exists {
 		return nil, ErrNotFound
 	}
 	return e, nil
 }
 
-// Search 依關鍵字查詢活動列表。
-func (s *EventService) Search(keyword string) []*Event {
-	return s.db.Search(keyword)
+// Search 依條件查詢活動列表。
+func (s *EventService) Search(q eventdb.EventQuery) []*eventdb.Event {
+	return s.repo.Search(q)
 }
 
 // Update 更新活動，僅主辦人可操作；只更新非零值欄位。
-func (s *EventService) Update(callerID, eventID int, name, description string, startAt time.Time) (*Event, error) {
-	e, exists := s.db.FindByID(eventID)
+func (s *EventService) Update(callerID, eventID int, name, description string, startAt time.Time) (*eventdb.Event, error) {
+	e, exists := s.repo.FindByID(eventID)
 	if !exists {
 		return nil, ErrNotFound
 	}
@@ -76,7 +71,7 @@ func (s *EventService) Update(callerID, eventID int, name, description string, s
 	if !startAt.IsZero() {
 		e.StartAt = startAt
 	}
-	if err := s.db.Update(e); err != nil {
+	if err := s.repo.Update(e); err != nil {
 		return nil, err
 	}
 	return e, nil
@@ -84,14 +79,14 @@ func (s *EventService) Update(callerID, eventID int, name, description string, s
 
 // Delete 刪除活動，僅主辦人可操作。
 func (s *EventService) Delete(callerID, eventID int) error {
-	e, exists := s.db.FindByID(eventID)
+	e, exists := s.repo.FindByID(eventID)
 	if !exists {
 		return ErrNotFound
 	}
 	if e.OrganizerID != callerID {
 		return ErrForbidden
 	}
-	s.db.Delete(eventID)
+	s.repo.Delete(eventID)
 	return nil
 }
 

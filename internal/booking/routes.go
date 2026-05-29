@@ -18,7 +18,7 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 		On(ErrNotFound, http.StatusNotFound, "Booking not found").
 		On(ErrForbidden, http.StatusForbidden, "Forbidden")
 
-	bookingDB := NewBookingDB(database)
+	bookingDB := NewMySQLBookingRepository(database)
 	router.Bind("bookingService", func() any {
 		return NewBookingService(bookingDB)
 	}, scope.NewHttpRequestScope())

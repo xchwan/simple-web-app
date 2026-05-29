@@ -1,6 +1,6 @@
 package ticket
 
-import "github.com/xchwan/simple-web-app/internal/event"
+import eventdb "github.com/xchwan/simple-web-app/internal/event/db"
 
 // TicketStatus 代表票的狀態。
 type TicketStatus string
@@ -27,18 +27,18 @@ type TicketInput struct {
 
 // TicketService 負責票券相關的業務邏輯。
 type TicketService struct {
-	db      *TicketDB
-	eventDB *event.EventDB
+	db        *MySQLTicketRepository
+	eventRepo eventdb.EventRepository
 }
 
 // NewTicketService 建立一個 TicketService。
-func NewTicketService(db *TicketDB, eventDB *event.EventDB) *TicketService {
-	return &TicketService{db: db, eventDB: eventDB}
+func NewTicketService(db *MySQLTicketRepository, eventRepo eventdb.EventRepository) *TicketService {
+	return &TicketService{db: db, eventRepo: eventRepo}
 }
 
 // BatchCreate 批次建立票券，僅活動主辦人可操作。
 func (s *TicketService) BatchCreate(callerID, eventID int, inputs []TicketInput) ([]*Ticket, error) {
-	e, exists := s.eventDB.FindByID(eventID)
+	e, exists := s.eventRepo.FindByID(eventID)
 	if !exists {
 		return nil, ErrEventNotFound
 	}

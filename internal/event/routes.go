@@ -7,11 +7,14 @@ import (
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-framework/scope"
+	eventdb "github.com/xchwan/simple-web-app/internal/event/db"
 	"github.com/xchwan/simple-web-app/internal/user"
 	"gorm.io/gorm"
 )
 
 // SetupRoutes 向 router 註冊 event 相關的依賴與路由。
+// 目前使用 MySQL repo；待 ES 就緒後改為：
+//   eventdb.NewElasticRepository(eventdb.NewMySQLRepository(database))
 func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.ExceptionMapperPlugin) {
 	mapper.
 		On(ErrNotFound, http.StatusNotFound, "Event not found").
@@ -19,9 +22,9 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 		On(ErrNameFormatInvalid, http.StatusBadRequest, "Event name format invalid").
 		On(ErrStartAtInvalid, http.StatusBadRequest, "Event start time invalid")
 
-	eventDB := NewEventDB(database)
+	repo := eventdb.NewMySQLRepository(database)
 	router.Bind("eventService", func() any {
-		return NewEventService(eventDB)
+		return NewEventService(repo)
 	}, scope.NewHttpRequestScope())
 
 	h := NewEventHandler()

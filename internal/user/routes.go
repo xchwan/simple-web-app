@@ -22,7 +22,7 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, rdb *redis.Client,
 		On(ErrForbidden, http.StatusForbidden, "Forbidden").
 		On(ErrNameFormatInvalid, http.StatusBadRequest, "Name format invalid")
 
-	userDB := NewUserDB(database)
+	userDB := NewMySQLUserRepository(database)
 	router.Bind("userService", func() any {
 		return NewUserService(userDB, rdb)
 	}, scope.NewHttpRequestScope())

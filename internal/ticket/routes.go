@@ -7,7 +7,7 @@ import (
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-framework/scope"
-	"github.com/xchwan/simple-web-app/internal/event"
+	eventdb "github.com/xchwan/simple-web-app/internal/event/db"
 	"github.com/xchwan/simple-web-app/internal/user"
 	"gorm.io/gorm"
 )
@@ -21,8 +21,8 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 		On(ErrSeatFormatInvalid, http.StatusBadRequest, "Seat format invalid").
 		On(ErrPriceInvalid, http.StatusBadRequest, "Price must be >= 0")
 
-	ticketDB := NewTicketDB(database)
-	eventDB := event.NewEventDB(database)
+	ticketDB := NewMySQLTicketRepository(database)
+	eventDB := eventdb.NewMySQLRepository(database)
 	router.Bind("ticketService", func() any {
 		return NewTicketService(ticketDB, eventDB)
 	}, scope.NewHttpRequestScope())

@@ -10,11 +10,11 @@ type Wallet struct {
 
 // WalletService 負責錢包相關的業務邏輯。
 type WalletService struct {
-	db *WalletDB
+	db *MySQLWalletRepository
 }
 
 // NewWalletService 建立一個 WalletService。
-func NewWalletService(db *WalletDB) *WalletService {
+func NewWalletService(db *MySQLWalletRepository) *WalletService {
 	return &WalletService{db: db}
 }
 

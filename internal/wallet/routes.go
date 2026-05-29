@@ -18,7 +18,7 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 		On(ErrForbidden, http.StatusForbidden, "Forbidden").
 		On(ErrNameFormatInvalid, http.StatusBadRequest, "Wallet name format invalid")
 
-	walletDB := NewWalletDB(database)
+	walletDB := NewMySQLWalletRepository(database)
 	router.Bind("walletService", func() any {
 		return NewWalletService(walletDB)
 	}, scope.NewHttpRequestScope())
