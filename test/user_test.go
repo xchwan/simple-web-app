@@ -29,36 +29,14 @@ func newRouter() http.Handler {
 	}
 	rdb := db.ConnectRedis()
 
+	mapper := plugin.NewExceptionMapperPlugin()
 	router := framework.NewRouter()
-	router.AddPlugin(
-		plugin.NewExceptionMapperPlugin().
-			On(user.ErrEmailDuplicate, http.StatusBadRequest, "Duplicate email").
-			On(user.ErrRegisterFormatInvalid, http.StatusBadRequest, "Registration format invalid").
-			On(user.ErrCredentialsInvalid, http.StatusBadRequest, "Credentials invalid").
-			On(user.ErrLoginFormatInvalid, http.StatusBadRequest, "Login format invalid").
-			On(user.ErrTokenInvalid, http.StatusUnauthorized, "Can't authenticate who you are").
-			On(user.ErrForbidden, http.StatusForbidden, "Forbidden").
-			On(user.ErrNameFormatInvalid, http.StatusBadRequest, "Name format invalid").
-			On(wallet.ErrNotFound, http.StatusNotFound, "Wallet not found").
-			On(wallet.ErrForbidden, http.StatusForbidden, "Forbidden").
-			On(wallet.ErrNameFormatInvalid, http.StatusBadRequest, "Wallet name format invalid").
-			On(event.ErrNotFound, http.StatusNotFound, "Event not found").
-			On(event.ErrForbidden, http.StatusForbidden, "Forbidden").
-			On(event.ErrNameFormatInvalid, http.StatusBadRequest, "Event name format invalid").
-			On(event.ErrStartAtInvalid, http.StatusBadRequest, "Event start time invalid").
-			On(ticket.ErrNotFound, http.StatusNotFound, "Ticket not found").
-			On(ticket.ErrEventNotFound, http.StatusNotFound, "Event not found").
-			On(ticket.ErrForbidden, http.StatusForbidden, "Forbidden").
-			On(ticket.ErrSeatFormatInvalid, http.StatusBadRequest, "Seat format invalid").
-			On(ticket.ErrPriceInvalid, http.StatusBadRequest, "Price must be >= 0").
-			On(booking.ErrNotFound, http.StatusNotFound, "Booking not found").
-			On(booking.ErrForbidden, http.StatusForbidden, "Forbidden"),
-	)
-	user.SetupRoutes(router, database, rdb)
-	wallet.SetupRoutes(router, database)
-	event.SetupRoutes(router, database)
-	ticket.SetupRoutes(router, database)
-	booking.SetupRoutes(router, database)
+	router.AddPlugin(mapper)
+	user.SetupRoutes(router, database, rdb, mapper)
+	wallet.SetupRoutes(router, database, mapper)
+	event.SetupRoutes(router, database, mapper)
+	ticket.SetupRoutes(router, database, mapper)
+	booking.SetupRoutes(router, database, mapper)
 	return router
 }
 

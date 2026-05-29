@@ -1,7 +1,10 @@
 package event
 
 import (
+	"net/http"
+
 	framework "github.com/xchwan/simple-web-framework"
+	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-framework/scope"
 	"github.com/xchwan/simple-web-app/internal/user"
@@ -9,8 +12,13 @@ import (
 )
 
 // SetupRoutes 向 router 註冊 event 相關的依賴與路由。
-// 錯誤對應由 main.go 統一在 ExceptionMapperPlugin 設定。
-func SetupRoutes(router *framework.Router, database *gorm.DB) {
+func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.ExceptionMapperPlugin) {
+	mapper.
+		On(ErrNotFound, http.StatusNotFound, "Event not found").
+		On(ErrForbidden, http.StatusForbidden, "Forbidden").
+		On(ErrNameFormatInvalid, http.StatusBadRequest, "Event name format invalid").
+		On(ErrStartAtInvalid, http.StatusBadRequest, "Event start time invalid")
+
 	eventDB := NewEventDB(database)
 	router.Bind("eventService", func() any {
 		return NewEventService(eventDB)
