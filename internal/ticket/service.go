@@ -23,6 +23,7 @@ func NewTicketService(db *ticketrepo.MySQLTicketRepository, eventDB *eventrepo.M
 }
 
 // BatchCreate 批次建立票券，僅活動主辦人可操作。
+// 新增後票券總數不得超過活動容量。
 func (s *TicketService) BatchCreate(callerID, eventID int, inputs []TicketInput) ([]*ticketrepo.Ticket, error) {
 	e, exists := s.eventDB.FindByID(eventID)
 	if !exists {
@@ -30,6 +31,10 @@ func (s *TicketService) BatchCreate(callerID, eventID int, inputs []TicketInput)
 	}
 	if e.OrganizerID != callerID {
 		return nil, ErrForbidden
+	}
+	existing := s.db.CountByEvent(eventID)
+	if existing+len(inputs) > e.Capacity {
+		return nil, ErrCapacityExceeded
 	}
 	tickets := make([]*ticketrepo.Ticket, 0, len(inputs))
 	for _, in := range inputs {

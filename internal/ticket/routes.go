@@ -20,7 +20,8 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 		On(ErrEventNotFound, http.StatusNotFound, "Event not found").
 		On(ErrForbidden, http.StatusForbidden, "Forbidden").
 		On(ErrSeatFormatInvalid, http.StatusBadRequest, "Seat format invalid").
-		On(ErrPriceInvalid, http.StatusBadRequest, "Price must be >= 0")
+		On(ErrPriceInvalid, http.StatusBadRequest, "Price must be >= 0").
+		On(ErrCapacityExceeded, http.StatusUnprocessableEntity, "Event capacity exceeded")
 
 	ticketDB := ticketrepo.NewMySQLTicketRepository(database)
 	eventDB := eventrepo.NewMySQLRepository(database)

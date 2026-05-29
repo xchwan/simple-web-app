@@ -28,12 +28,14 @@ type CreateEventRequest struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	StartAt     time.Time `json:"startAt"`
+	Capacity    int       `json:"capacity"`
 }
 
 type UpdateEventRequest struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	StartAt     time.Time `json:"startAt"`
+	Capacity    int       `json:"capacity"`
 }
 
 type EventResponse struct {
@@ -42,6 +44,7 @@ type EventResponse struct {
 	Name        string    `json:"name"`
 	Description string    `json:"description"`
 	StartAt     time.Time `json:"startAt"`
+	Capacity    int       `json:"capacity"`
 }
 
 // ===== Handlers =====
@@ -53,7 +56,7 @@ func (h *EventHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err := framework.ParseOrRespond(w, r, &req); err != nil {
 		return
 	}
-	e, err := h.service(r).Create(caller.ID, req.Name, req.Description, req.StartAt)
+	e, err := h.service(r).Create(caller.ID, req.Name, req.Description, req.Capacity, req.StartAt)
 	if err != nil {
 		framework.HandleError(w, r, err)
 		return
@@ -111,7 +114,7 @@ func (h *EventHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if err := framework.ParseOrRespond(w, r, &req); err != nil {
 		return
 	}
-	e, svcErr := h.service(r).Update(caller.ID, id, req.Name, req.Description, req.StartAt)
+	e, svcErr := h.service(r).Update(caller.ID, id, req.Name, req.Description, req.Capacity, req.StartAt)
 	if svcErr != nil {
 		framework.HandleError(w, r, svcErr)
 		return
@@ -141,5 +144,6 @@ func toEventResponse(e *eventrepo.Event) EventResponse {
 		Name:        e.Name,
 		Description: e.Description,
 		StartAt:     e.StartAt,
+		Capacity:    e.Capacity,
 	}
 }

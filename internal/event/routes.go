@@ -19,7 +19,8 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, esClient *elastics
 		On(ErrNotFound, http.StatusNotFound, "Event not found").
 		On(ErrForbidden, http.StatusForbidden, "Forbidden").
 		On(ErrNameFormatInvalid, http.StatusBadRequest, "Event name format invalid").
-		On(ErrStartAtInvalid, http.StatusBadRequest, "Event start time invalid")
+		On(ErrStartAtInvalid, http.StatusBadRequest, "Event start time invalid").
+		On(ErrCapacityInvalid, http.StatusBadRequest, "Event capacity must be > 0")
 
 	repo := eventrepo.NewMySQLRepository(database)
 	searchRepo := eventrepo.NewElasticSearchRepository(esClient)

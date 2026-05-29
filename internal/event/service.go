@@ -19,9 +19,12 @@ func NewEventService(db *eventrepo.MySQLEventRepository, es *eventrepo.ElasticEv
 }
 
 // Create 建立一個新活動，成功後同步寫入搜尋索引。
-func (s *EventService) Create(organizerID int, name, description string, startAt time.Time) (*eventrepo.Event, error) {
+func (s *EventService) Create(organizerID int, name, description string, capacity int, startAt time.Time) (*eventrepo.Event, error) {
 	if !validateLength(name, 1, 255) {
 		return nil, ErrNameFormatInvalid
+	}
+	if capacity <= 0 {
+		return nil, ErrCapacityInvalid
 	}
 	if startAt.IsZero() {
 		return nil, ErrStartAtInvalid
@@ -30,6 +33,7 @@ func (s *EventService) Create(organizerID int, name, description string, startAt
 		OrganizerID: organizerID,
 		Name:        name,
 		Description: description,
+		Capacity:    capacity,
 		StartAt:     startAt,
 	}
 	if err := s.db.Save(e); err != nil {
@@ -63,7 +67,7 @@ func (s *EventService) Search(q eventrepo.EventQuery) []*eventrepo.Event {
 }
 
 // Update 更新活動，僅主辦人可操作；成功後同步更新搜尋索引。
-func (s *EventService) Update(callerID, eventID int, name, description string, startAt time.Time) (*eventrepo.Event, error) {
+func (s *EventService) Update(callerID, eventID int, name, description string, capacity int, startAt time.Time) (*eventrepo.Event, error) {
 	e, exists := s.db.FindByID(eventID)
 	if !exists {
 		return nil, ErrNotFound
@@ -79,6 +83,12 @@ func (s *EventService) Update(callerID, eventID int, name, description string, s
 	}
 	if description != "" {
 		e.Description = description
+	}
+	if capacity != 0 {
+		if capacity < 0 {
+			return nil, ErrCapacityInvalid
+		}
+		e.Capacity = capacity
 	}
 	if !startAt.IsZero() {
 		e.StartAt = startAt

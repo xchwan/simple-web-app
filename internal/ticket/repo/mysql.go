@@ -36,3 +36,10 @@ func (r *MySQLTicketRepository) FindByEventID(eventID int, status *TicketStatus)
 	query.Find(&tickets)
 	return tickets
 }
+
+// CountByEvent 回傳指定活動已建立的票券總數。
+func (r *MySQLTicketRepository) CountByEvent(eventID int) int {
+	var count int64
+	r.db.Model(&Ticket{}).Where("event_id = ?", eventID).Count(&count)
+	return int(count)
+}

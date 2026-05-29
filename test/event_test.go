@@ -14,8 +14,13 @@ func createEvent(t *testing.T, handler http.Handler, token string) map[string]an
 		"name":        "Test Concert",
 		"description": "A great show",
 		"startAt":     "2026-09-01T20:00:00Z",
+		"capacity":    100,
 	}, token)
-	return decode[map[string]any](t, w)
+	resp := decode[map[string]any](t, w)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("createEvent helper failed: status %d, body %v", w.Code, resp)
+	}
+	return resp
 }
 
 // ===== C1：建立活動 =====
@@ -29,6 +34,7 @@ func TestCreateEvent_Success(t *testing.T) {
 		"name":        "Rock Concert",
 		"description": "Best night ever",
 		"startAt":     "2026-09-01T20:00:00Z",
+		"capacity":    50,
 	}, token)
 
 	if w.Code != http.StatusCreated {
@@ -62,8 +68,10 @@ func TestCreateEvent_FormatInvalid(t *testing.T) {
 		name string
 		body map[string]any
 	}{
-		{"name empty", map[string]any{"name": "", "startAt": "2026-09-01T20:00:00Z"}},
-		{"startAt missing", map[string]any{"name": "Concert"}},
+		{"name empty", map[string]any{"name": "", "startAt": "2026-09-01T20:00:00Z", "capacity": 50}},
+		{"startAt missing", map[string]any{"name": "Concert", "capacity": 50}},
+		{"capacity zero", map[string]any{"name": "Concert", "startAt": "2026-09-01T20:00:00Z", "capacity": 0}},
+		{"capacity negative", map[string]any{"name": "Concert", "startAt": "2026-09-01T20:00:00Z", "capacity": -1}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -127,10 +135,10 @@ func TestSearchEvents_WithKeyword(t *testing.T) {
 	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
 
 	request(t, router, http.MethodPost, "/api/events", map[string]any{
-		"name": "Rock Concert", "startAt": "2026-09-01T20:00:00Z",
+		"name": "Rock Concert", "startAt": "2026-09-01T20:00:00Z", "capacity": 50,
 	}, token)
 	request(t, router, http.MethodPost, "/api/events", map[string]any{
-		"name": "Jazz Night", "startAt": "2026-10-01T20:00:00Z",
+		"name": "Jazz Night", "startAt": "2026-10-01T20:00:00Z", "capacity": 50,
 	}, token)
 
 	w := request(t, router, http.MethodGet, "/api/events?keyword=Rock", nil, token)

@@ -9,6 +9,7 @@ type Event struct {
 	Name        string    `gorm:"not null;size:255"`
 	Description string    `gorm:"type:text"`
 	StartAt     time.Time `gorm:"not null"`
+	Capacity    int       `gorm:"not null;default:0"`
 }
 
 // EventQuery 代表搜尋活動的條件。
