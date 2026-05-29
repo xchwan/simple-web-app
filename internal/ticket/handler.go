@@ -6,6 +6,7 @@ import (
 
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-app/internal/user"
+	ticketdb "github.com/xchwan/simple-web-app/internal/ticket/db"
 )
 
 // TicketHandler 負責處理票券相關的 HTTP 請求。
@@ -32,11 +33,11 @@ type BatchCreateTicketsRequest struct {
 }
 
 type TicketResponse struct {
-	ID      int          `json:"id"`
-	EventID int          `json:"eventId"`
-	Seat    string       `json:"seat"`
-	Price   float64      `json:"price"`
-	Status  TicketStatus `json:"status"`
+	ID      int                  `json:"id"`
+	EventID int                  `json:"eventId"`
+	Seat    string               `json:"seat"`
+	Price   float64              `json:"price"`
+	Status  ticketdb.TicketStatus `json:"status"`
 }
 
 // ===== Handlers =====
@@ -76,9 +77,9 @@ func (h *TicketHandler) ListByEvent(w http.ResponseWriter, r *http.Request) {
 		framework.HandleError(w, r, ErrEventNotFound)
 		return
 	}
-	var status *TicketStatus
+	var status *ticketdb.TicketStatus
 	if s := r.URL.Query().Get("status"); s != "" {
-		ts := TicketStatus(s)
+		ts := ticketdb.TicketStatus(s)
 		status = &ts
 	}
 	tickets := h.service(r).ListByEvent(eventID, status)
@@ -104,7 +105,7 @@ func (h *TicketHandler) Get(w http.ResponseWriter, r *http.Request) {
 	framework.Respond(w, r, http.StatusOK, toTicketResponse(t))
 }
 
-func toTicketResponse(t *Ticket) TicketResponse {
+func toTicketResponse(t *ticketdb.Ticket) TicketResponse {
 	return TicketResponse{
 		ID:      t.ID,
 		EventID: t.EventID,

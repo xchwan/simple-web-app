@@ -1,14 +1,14 @@
-package wallet
+package walletdb
 
 import "gorm.io/gorm"
 
-// MySQLWalletRepository 負責錢包資料的 MySQL 存取。
+// MySQLWalletRepository 以 MySQL 實作 WalletRepository。
 type MySQLWalletRepository struct {
 	db *gorm.DB
 }
 
 // NewMySQLWalletRepository 建立一個 MySQLWalletRepository。
-func NewMySQLWalletRepository(db *gorm.DB) *MySQLWalletRepository {
+func NewMySQLWalletRepository(db *gorm.DB) WalletRepository {
 	return &MySQLWalletRepository{db: db}
 }
 

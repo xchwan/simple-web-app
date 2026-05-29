@@ -11,12 +11,15 @@ services:
       - DB_DSN=app:secret@tcp(mysql:3306)/appdb?parseTime=true
       - REDIS_ADDR=redis:6379
       - KAFKA_BROKERS=kafka:9092
+      - ELASTIC_ADDR=http://elasticsearch:9200
     depends_on:
       mysql:
         condition: service_healthy
       redis:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      elasticsearch:
         condition: service_healthy
     restart: on-failure
 
@@ -82,5 +85,23 @@ services:
     depends_on:
       - kafka
 
+  # ===== Elasticsearch =====
+  elasticsearch:
+    image: elasticsearch:8.17.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf 'http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s'"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+
 volumes:
   mysql_data:
+  es_data:

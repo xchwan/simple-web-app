@@ -34,7 +34,7 @@ func newRouter() http.Handler {
 	router.AddPlugin(mapper)
 	user.SetupRoutes(router, database, rdb, mapper)
 	wallet.SetupRoutes(router, database, mapper)
-	event.SetupRoutes(router, database, mapper)
+	event.SetupRoutes(router, database, nil, mapper) // nil = MySQL-only，不需要 ES
 	ticket.SetupRoutes(router, database, mapper)
 	booking.SetupRoutes(router, database, mapper)
 	return router

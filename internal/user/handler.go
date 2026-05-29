@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	framework "github.com/xchwan/simple-web-framework"
+	userdb "github.com/xchwan/simple-web-app/internal/user/db"
 )
 
 // UserHandler 負責處理會員相關的 HTTP 請求。
@@ -63,9 +64,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		framework.HandleError(w, r, err)
 		return
 	}
-	framework.Respond(w, r, http.StatusCreated, UserResponse{
-		ID: u.ID, Email: u.Email, Name: u.Name,
-	})
+	framework.Respond(w, r, http.StatusCreated, toUserResponse(u))
 }
 
 // Login 處理 POST /api/users/login。
@@ -120,7 +119,11 @@ func (h *UserHandler) SearchUsers(w http.ResponseWriter, r *http.Request) {
 
 	result := make([]UserResponse, len(users))
 	for i, u := range users {
-		result[i] = UserResponse{ID: u.ID, Email: u.Email, Name: u.Name}
+		result[i] = toUserResponse(u)
 	}
 	framework.Respond(w, r, http.StatusOK, result)
+}
+
+func toUserResponse(u *userdb.User) UserResponse {
+	return UserResponse{ID: u.ID, Email: u.Email, Name: u.Name}
 }

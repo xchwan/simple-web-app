@@ -8,13 +8,14 @@ import (
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-framework/scope"
+	userdb "github.com/xchwan/simple-web-app/internal/user/db"
 	"gorm.io/gorm"
 )
 
 // SetupRoutes 向 router 註冊 user 相關的依賴與路由。
 func SetupRoutes(router *framework.Router, database *gorm.DB, rdb *redis.Client, mapper *plugin.ExceptionMapperPlugin) {
 	mapper.
-		On(ErrEmailDuplicate, http.StatusBadRequest, "Duplicate email").
+		On(userdb.ErrEmailDuplicate, http.StatusBadRequest, "Duplicate email").
 		On(ErrRegisterFormatInvalid, http.StatusBadRequest, "Registration format invalid").
 		On(ErrCredentialsInvalid, http.StatusBadRequest, "Credentials invalid").
 		On(ErrLoginFormatInvalid, http.StatusBadRequest, "Login format invalid").
@@ -22,9 +23,9 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, rdb *redis.Client,
 		On(ErrForbidden, http.StatusForbidden, "Forbidden").
 		On(ErrNameFormatInvalid, http.StatusBadRequest, "Name format invalid")
 
-	userDB := NewMySQLUserRepository(database)
+	repo := userdb.NewMySQLUserRepository(database)
 	router.Bind("userService", func() any {
-		return NewUserService(userDB, rdb)
+		return NewUserService(repo, rdb)
 	}, scope.NewHttpRequestScope())
 
 	h := NewUserHandler()

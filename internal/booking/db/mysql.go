@@ -1,14 +1,14 @@
-package booking
+package bookingdb
 
 import "gorm.io/gorm"
 
-// MySQLBookingRepository 負責訂票資料的 MySQL 存取。
+// MySQLBookingRepository 以 MySQL 實作 BookingRepository。
 type MySQLBookingRepository struct {
 	db *gorm.DB
 }
 
 // NewMySQLBookingRepository 建立一個 MySQLBookingRepository。
-func NewMySQLBookingRepository(db *gorm.DB) *MySQLBookingRepository {
+func NewMySQLBookingRepository(db *gorm.DB) BookingRepository {
 	return &MySQLBookingRepository{db: db}
 }
 

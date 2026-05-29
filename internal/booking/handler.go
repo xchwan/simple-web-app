@@ -3,9 +3,9 @@ package booking
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	framework "github.com/xchwan/simple-web-framework"
+	bookingdb "github.com/xchwan/simple-web-app/internal/booking/db"
 	"github.com/xchwan/simple-web-app/internal/user"
 )
 
@@ -24,12 +24,12 @@ func (h *BookingHandler) service(r *http.Request) *BookingService {
 // ===== Request / Response DTO =====
 
 type BookingResponse struct {
-	ID       int           `json:"id"`
-	UserID   int           `json:"userId"`
-	TicketID int           `json:"ticketId"`
-	WalletID int           `json:"walletId"`
-	Status   BookingStatus `json:"status"`
-	BookedAt time.Time     `json:"bookedAt"`
+	ID       int                    `json:"id"`
+	UserID   int                    `json:"userId"`
+	TicketID int                    `json:"ticketId"`
+	WalletID int                    `json:"walletId"`
+	Status   bookingdb.BookingStatus `json:"status"`
+	BookedAt interface{}             `json:"bookedAt"`
 }
 
 // ===== Handlers =====
@@ -61,7 +61,7 @@ func (h *BookingHandler) List(w http.ResponseWriter, r *http.Request) {
 	framework.Respond(w, r, http.StatusOK, result)
 }
 
-func toBookingResponse(b *Booking) BookingResponse {
+func toBookingResponse(b *bookingdb.Booking) BookingResponse {
 	return BookingResponse{
 		ID:       b.ID,
 		UserID:   b.UserID,

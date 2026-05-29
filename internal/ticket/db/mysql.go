@@ -1,14 +1,14 @@
-package ticket
+package ticketdb
 
 import "gorm.io/gorm"
 
-// MySQLTicketRepository 負責票券資料的 MySQL 存取。
+// MySQLTicketRepository 以 MySQL 實作 TicketRepository。
 type MySQLTicketRepository struct {
 	db *gorm.DB
 }
 
 // NewMySQLTicketRepository 建立一個 MySQLTicketRepository。
-func NewMySQLTicketRepository(db *gorm.DB) *MySQLTicketRepository {
+func NewMySQLTicketRepository(db *gorm.DB) TicketRepository {
 	return &MySQLTicketRepository{db: db}
 }
 

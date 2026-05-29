@@ -3,6 +3,7 @@ package event
 import (
 	"net/http"
 
+	"github.com/elastic/go-elasticsearch/v8"
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
@@ -13,16 +14,22 @@ import (
 )
 
 // SetupRoutes 向 router 註冊 event 相關的依賴與路由。
-// 目前使用 MySQL repo；待 ES 就緒後改為：
-//   eventdb.NewElasticRepository(eventdb.NewMySQLRepository(database))
-func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.ExceptionMapperPlugin) {
+//
+// esClient 可為 nil，表示不啟用 Elasticsearch；
+// 傳入有效 client 時，Search 走 ES 全文索引，其餘寫入同步雙寫 MySQL + ES。
+func SetupRoutes(router *framework.Router, database *gorm.DB, esClient *elasticsearch.Client, mapper *plugin.ExceptionMapperPlugin) {
 	mapper.
 		On(ErrNotFound, http.StatusNotFound, "Event not found").
 		On(ErrForbidden, http.StatusForbidden, "Forbidden").
 		On(ErrNameFormatInvalid, http.StatusBadRequest, "Event name format invalid").
 		On(ErrStartAtInvalid, http.StatusBadRequest, "Event start time invalid")
 
-	repo := eventdb.NewMySQLRepository(database)
+	mysqlRepo := eventdb.NewMySQLRepository(database)
+	var repo eventdb.EventRepository = mysqlRepo
+	if esClient != nil {
+		repo = eventdb.NewElasticRepository(esClient, mysqlRepo)
+	}
+
 	router.Bind("eventService", func() any {
 		return NewEventService(repo)
 	}, scope.NewHttpRequestScope())

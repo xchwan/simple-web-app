@@ -1,4 +1,4 @@
-package user
+package userdb
 
 import (
 	"errors"
@@ -8,13 +8,13 @@ import (
 	"gorm.io/gorm"
 )
 
-// MySQLUserRepository 負責會員資料的 MySQL 存取。
+// MySQLUserRepository 以 MySQL 實作 UserRepository。
 type MySQLUserRepository struct {
 	db *gorm.DB
 }
 
 // NewMySQLUserRepository 建立一個 MySQLUserRepository。
-func NewMySQLUserRepository(db *gorm.DB) *MySQLUserRepository {
+func NewMySQLUserRepository(db *gorm.DB) UserRepository {
 	return &MySQLUserRepository{db: db}
 }
 
@@ -39,7 +39,7 @@ func (r *MySQLUserRepository) FindByEmailAndPassword(email, passwordHash string)
 	return &u, true
 }
 
-// FindByID 依會員編號查詢會員。
+// FindByID 依會員編號查詢。
 func (r *MySQLUserRepository) FindByID(id int) (*User, bool) {
 	var u User
 	if err := r.db.First(&u, id).Error; err != nil {

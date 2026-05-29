@@ -25,7 +25,7 @@ func main() {
 	}
 
 	rdb := db.ConnectRedis()
-	_ = db.ConnectElastic() // TODO: 傳入需要 ES 的 domain
+	esClient := db.ConnectElastic()
 
 	docs := apidoc.NewDocPlugin()
 	mapper := plugin.NewExceptionMapperPlugin()
@@ -36,7 +36,7 @@ func main() {
 
 	user.SetupRoutes(router, database, rdb, mapper)
 	wallet.SetupRoutes(router, database, mapper)
-	event.SetupRoutes(router, database, mapper)
+	event.SetupRoutes(router, database, esClient, mapper)
 	ticket.SetupRoutes(router, database, mapper)
 	booking.SetupRoutes(router, database, mapper)
 

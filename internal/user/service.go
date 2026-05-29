@@ -10,16 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	userdb "github.com/xchwan/simple-web-app/internal/user/db"
 )
-
-// User 代表系統中的會員。
-// Token 不存 DB，改存 Redis（key: session:{token} → userID）。
-type User struct {
-	ID           int    `gorm:"primarykey;autoIncrement"`
-	Email        string `gorm:"uniqueIndex;not null;size:255"`
-	Name         string `gorm:"not null;size:255"`
-	PasswordHash string `gorm:"not null;size:255"`
-}
 
 const (
 	sessionPrefix = "session:"
@@ -28,21 +20,21 @@ const (
 
 // UserService 負責會員相關的業務邏輯。
 type UserService struct {
-	repo  *MySQLUserRepository
+	repo  userdb.UserRepository
 	redis *redis.Client
 }
 
 // NewUserService 建立一個 UserService。
-func NewUserService(repo *MySQLUserRepository, rdb *redis.Client) *UserService {
+func NewUserService(repo userdb.UserRepository, rdb *redis.Client) *UserService {
 	return &UserService{repo: repo, redis: rdb}
 }
 
 // Register 驗證並新增一位會員。
-func (s *UserService) Register(email, name, password string) (*User, error) {
+func (s *UserService) Register(email, name, password string) (*userdb.User, error) {
 	if !validateEmail(email) || !validateLength(name, 5, 32) || !validateLength(password, 5, 32) {
 		return nil, ErrRegisterFormatInvalid
 	}
-	u := &User{
+	u := &userdb.User{
 		Email:        email,
 		Name:         name,
 		PasswordHash: hashPassword(password),
@@ -54,7 +46,7 @@ func (s *UserService) Register(email, name, password string) (*User, error) {
 }
 
 // Login 驗證帳密，產生 token 存入 Redis 並回傳。
-func (s *UserService) Login(email, password string) (*User, string, error) {
+func (s *UserService) Login(email, password string) (*userdb.User, string, error) {
 	if !validateEmail(email) || !validateLength(password, 5, 32) {
 		return nil, "", ErrLoginFormatInvalid
 	}
@@ -70,7 +62,7 @@ func (s *UserService) Login(email, password string) (*User, string, error) {
 }
 
 // Authenticate 從 Redis 驗證 token，回傳對應的會員。
-func (s *UserService) Authenticate(token string) (*User, error) {
+func (s *UserService) Authenticate(token string) (*userdb.User, error) {
 	if token == "" {
 		return nil, ErrTokenInvalid
 	}
@@ -107,7 +99,7 @@ func (s *UserService) UpdateName(callerID, targetID int, newName string) error {
 }
 
 // SearchUsers 依關鍵字查詢會員列表。
-func (s *UserService) SearchUsers(keyword string) []*User {
+func (s *UserService) SearchUsers(keyword string) []*userdb.User {
 	return s.repo.Search(keyword)
 }
 
