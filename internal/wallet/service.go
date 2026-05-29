@@ -1,23 +1,23 @@
 package wallet
 
-import walletdb "github.com/xchwan/simple-web-app/internal/wallet/db"
+import walletrepo "github.com/xchwan/simple-web-app/internal/wallet/repo"
 
 // WalletService 負責錢包相關的業務邏輯。
 type WalletService struct {
-	db walletdb.WalletRepository
+	db *walletrepo.MySQLWalletRepository
 }
 
 // NewWalletService 建立一個 WalletService。
-func NewWalletService(db walletdb.WalletRepository) *WalletService {
+func NewWalletService(db *walletrepo.MySQLWalletRepository) *WalletService {
 	return &WalletService{db: db}
 }
 
 // Create 建立一個新錢包。
-func (s *WalletService) Create(userID int, name string) (*walletdb.Wallet, error) {
+func (s *WalletService) Create(userID int, name string) (*walletrepo.Wallet, error) {
 	if !validateLength(name, 1, 50) {
 		return nil, ErrNameFormatInvalid
 	}
-	w := &walletdb.Wallet{UserID: userID, Name: name}
+	w := &walletrepo.Wallet{UserID: userID, Name: name}
 	if err := s.db.Save(w); err != nil {
 		return nil, err
 	}
@@ -25,7 +25,7 @@ func (s *WalletService) Create(userID int, name string) (*walletdb.Wallet, error
 }
 
 // GetByID 取得錢包，僅擁有者可存取。
-func (s *WalletService) GetByID(callerID, walletID int) (*walletdb.Wallet, error) {
+func (s *WalletService) GetByID(callerID, walletID int) (*walletrepo.Wallet, error) {
 	w, exists := s.db.FindByID(walletID)
 	if !exists {
 		return nil, ErrNotFound
@@ -37,7 +37,7 @@ func (s *WalletService) GetByID(callerID, walletID int) (*walletdb.Wallet, error
 }
 
 // ListByUser 列出指定會員的所有錢包。
-func (s *WalletService) ListByUser(userID int) []*walletdb.Wallet {
+func (s *WalletService) ListByUser(userID int) []*walletrepo.Wallet {
 	return s.db.FindByUserID(userID)
 }
 

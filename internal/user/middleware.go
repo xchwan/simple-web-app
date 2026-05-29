@@ -6,13 +6,13 @@ import (
 	"strings"
 
 	framework "github.com/xchwan/simple-web-framework"
-	userdb "github.com/xchwan/simple-web-app/internal/user/db"
+	userrepo "github.com/xchwan/simple-web-app/internal/user/repo"
 )
 
 type callerKey struct{}
 
 // Auth 是驗證 Bearer token 的 middleware。
-// 驗證成功後將已登入的 *userdb.User 注入 request context，供後續 handler 使用。
+// 驗證成功後將已登入的 *userrepo.User 注入 request context，供後續 handler 使用。
 func Auth(next framework.HandlerFunc) framework.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := extractBearerToken(r)
@@ -28,8 +28,8 @@ func Auth(next framework.HandlerFunc) framework.HandlerFunc {
 }
 
 // Caller 從 request context 取出已驗證的使用者。
-func Caller(r *http.Request) *userdb.User {
-	u, _ := r.Context().Value(callerKey{}).(*userdb.User)
+func Caller(r *http.Request) *userrepo.User {
+	u, _ := r.Context().Value(callerKey{}).(*userrepo.User)
 	return u
 }
 

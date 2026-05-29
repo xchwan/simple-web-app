@@ -1,58 +1,70 @@
 package event
 
 import (
+	"log"
 	"time"
 
-	eventdb "github.com/xchwan/simple-web-app/internal/event/db"
+	eventrepo "github.com/xchwan/simple-web-app/internal/event/repo"
 )
 
 // EventService 負責活動相關的業務邏輯。
 type EventService struct {
-	repo eventdb.EventRepository
+	db *eventrepo.MySQLEventRepository
+	es *eventrepo.ElasticEventSearchRepository
 }
 
 // NewEventService 建立一個 EventService。
-func NewEventService(repo eventdb.EventRepository) *EventService {
-	return &EventService{repo: repo}
+func NewEventService(db *eventrepo.MySQLEventRepository, es *eventrepo.ElasticEventSearchRepository) *EventService {
+	return &EventService{db: db, es: es}
 }
 
-// Create 建立一個新活動。
-func (s *EventService) Create(organizerID int, name, description string, startAt time.Time) (*eventdb.Event, error) {
+// Create 建立一個新活動，成功後同步寫入搜尋索引。
+func (s *EventService) Create(organizerID int, name, description string, startAt time.Time) (*eventrepo.Event, error) {
 	if !validateLength(name, 1, 255) {
 		return nil, ErrNameFormatInvalid
 	}
 	if startAt.IsZero() {
 		return nil, ErrStartAtInvalid
 	}
-	e := &eventdb.Event{
+	e := &eventrepo.Event{
 		OrganizerID: organizerID,
 		Name:        name,
 		Description: description,
 		StartAt:     startAt,
 	}
-	if err := s.repo.Save(e); err != nil {
+	if err := s.db.Save(e); err != nil {
 		return nil, err
 	}
+	s.index(e)
 	return e, nil
 }
 
-// GetByID 依編號取得活動。
-func (s *EventService) GetByID(id int) (*eventdb.Event, error) {
-	e, exists := s.repo.FindByID(id)
+// GetByID 依編號取得活動（從 MySQL 查詢）。
+func (s *EventService) GetByID(id int) (*eventrepo.Event, error) {
+	e, exists := s.db.FindByID(id)
 	if !exists {
 		return nil, ErrNotFound
 	}
 	return e, nil
 }
 
-// Search 依條件查詢活動列表。
-func (s *EventService) Search(q eventdb.EventQuery) []*eventdb.Event {
-	return s.repo.Search(q)
+// Search 查詢活動列表。
+// 若有 ES，走全文索引；若無或 ES 失敗，fallback 到 MySQL LIKE。
+func (s *EventService) Search(q eventrepo.EventQuery) []*eventrepo.Event {
+	if s.es != nil {
+		results, err := s.es.Search(q)
+		if err != nil {
+			log.Printf("[ES] search 失敗，fallback MySQL: %v", err)
+			return s.db.Search(q)
+		}
+		return results
+	}
+	return s.db.Search(q)
 }
 
-// Update 更新活動，僅主辦人可操作；只更新非零值欄位。
-func (s *EventService) Update(callerID, eventID int, name, description string, startAt time.Time) (*eventdb.Event, error) {
-	e, exists := s.repo.FindByID(eventID)
+// Update 更新活動，僅主辦人可操作；成功後同步更新搜尋索引。
+func (s *EventService) Update(callerID, eventID int, name, description string, startAt time.Time) (*eventrepo.Event, error) {
+	e, exists := s.db.FindByID(eventID)
 	if !exists {
 		return nil, ErrNotFound
 	}
@@ -71,23 +83,37 @@ func (s *EventService) Update(callerID, eventID int, name, description string, s
 	if !startAt.IsZero() {
 		e.StartAt = startAt
 	}
-	if err := s.repo.Update(e); err != nil {
+	if err := s.db.Update(e); err != nil {
 		return nil, err
 	}
+	s.index(e)
 	return e, nil
 }
 
-// Delete 刪除活動，僅主辦人可操作。
+// Delete 刪除活動，僅主辦人可操作；成功後從搜尋索引移除。
 func (s *EventService) Delete(callerID, eventID int) error {
-	e, exists := s.repo.FindByID(eventID)
+	e, exists := s.db.FindByID(eventID)
 	if !exists {
 		return ErrNotFound
 	}
 	if e.OrganizerID != callerID {
 		return ErrForbidden
 	}
-	s.repo.Delete(eventID)
+	s.db.Delete(eventID)
+	if s.es != nil {
+		s.es.Remove(eventID)
+	}
 	return nil
+}
+
+// index 將 event 同步到搜尋索引；失敗只記 log，不影響主流程。
+func (s *EventService) index(e *eventrepo.Event) {
+	if s.es == nil {
+		return
+	}
+	if err := s.es.Index(e); err != nil {
+		log.Printf("[ES] index 失敗 (id=%d): %v", e.ID, err)
+	}
 }
 
 func validateLength(s string, min, max int) bool {

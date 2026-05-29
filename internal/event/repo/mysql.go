@@ -1,4 +1,4 @@
-package eventdb
+package eventrepo
 
 import (
 	"strings"
@@ -12,7 +12,7 @@ type MySQLEventRepository struct {
 }
 
 // NewMySQLRepository 建立一個 MySQLEventRepository。
-func NewMySQLRepository(db *gorm.DB) EventRepository {
+func NewMySQLRepository(db *gorm.DB) *MySQLEventRepository {
 	return &MySQLEventRepository{db: db}
 }
 

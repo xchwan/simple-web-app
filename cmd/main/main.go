@@ -7,7 +7,7 @@ import (
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-app/internal/booking"
-	"github.com/xchwan/simple-web-app/internal/db"
+	"github.com/xchwan/simple-web-app/internal/infra"
 	"github.com/xchwan/simple-web-app/internal/event"
 	"github.com/xchwan/simple-web-app/internal/ticket"
 	"github.com/xchwan/simple-web-app/internal/user"
@@ -15,17 +15,17 @@ import (
 )
 
 func main() {
-	database, err := db.Connect()
+	database, err := infra.Connect()
 	if err != nil {
 		log.Fatalf("DB 連線失敗: %v", err)
 	}
 
-	if err := db.Migrate(database); err != nil {
+	if err := infra.Migrate(database); err != nil {
 		log.Fatalf("Migration 失敗: %v", err)
 	}
 
-	rdb := db.ConnectRedis()
-	esClient := db.ConnectElastic()
+	rdb := infra.ConnectRedis()
+	esClient := infra.ConnectElastic()
 
 	docs := apidoc.NewDocPlugin()
 	mapper := plugin.NewExceptionMapperPlugin()

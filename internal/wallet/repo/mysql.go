@@ -1,4 +1,4 @@
-package walletdb
+package walletrepo
 
 import "gorm.io/gorm"
 
@@ -8,7 +8,7 @@ type MySQLWalletRepository struct {
 }
 
 // NewMySQLWalletRepository 建立一個 MySQLWalletRepository。
-func NewMySQLWalletRepository(db *gorm.DB) WalletRepository {
+func NewMySQLWalletRepository(db *gorm.DB) *MySQLWalletRepository {
 	return &MySQLWalletRepository{db: db}
 }
 

@@ -1,4 +1,4 @@
-package userdb
+package userrepo
 
 import (
 	"errors"
@@ -14,7 +14,7 @@ type MySQLUserRepository struct {
 }
 
 // NewMySQLUserRepository 建立一個 MySQLUserRepository。
-func NewMySQLUserRepository(db *gorm.DB) UserRepository {
+func NewMySQLUserRepository(db *gorm.DB) *MySQLUserRepository {
 	return &MySQLUserRepository{db: db}
 }
 

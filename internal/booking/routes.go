@@ -7,7 +7,7 @@ import (
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-framework/scope"
-	bookingdb "github.com/xchwan/simple-web-app/internal/booking/db"
+	bookingrepo "github.com/xchwan/simple-web-app/internal/booking/repo"
 	"github.com/xchwan/simple-web-app/internal/user"
 	"gorm.io/gorm"
 )
@@ -19,7 +19,7 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 		On(ErrNotFound, http.StatusNotFound, "Booking not found").
 		On(ErrForbidden, http.StatusForbidden, "Forbidden")
 
-	repo := bookingdb.NewMySQLBookingRepository(database)
+	repo := bookingrepo.NewMySQLBookingRepository(database)
 	router.Bind("bookingService", func() any {
 		return NewBookingService(repo)
 	}, scope.NewHttpRequestScope())

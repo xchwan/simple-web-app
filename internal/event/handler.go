@@ -6,7 +6,7 @@ import (
 	"time"
 
 	framework "github.com/xchwan/simple-web-framework"
-	eventdb "github.com/xchwan/simple-web-app/internal/event/db"
+	eventrepo "github.com/xchwan/simple-web-app/internal/event/repo"
 	"github.com/xchwan/simple-web-app/internal/user"
 )
 
@@ -78,7 +78,7 @@ func (h *EventHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // Search 處理 GET /api/events（可選 ?keyword=&startFrom=&startTo=）。
 func (h *EventHandler) Search(w http.ResponseWriter, r *http.Request) {
-	q := eventdb.EventQuery{
+	q := eventrepo.EventQuery{
 		Keyword: r.URL.Query().Get("keyword"),
 	}
 	if s := r.URL.Query().Get("startFrom"); s != "" {
@@ -134,7 +134,7 @@ func (h *EventHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	framework.Respond(w, r, http.StatusNoContent, nil)
 }
 
-func toEventResponse(e *eventdb.Event) EventResponse {
+func toEventResponse(e *eventrepo.Event) EventResponse {
 	return EventResponse{
 		ID:          e.ID,
 		OrganizerID: e.OrganizerID,

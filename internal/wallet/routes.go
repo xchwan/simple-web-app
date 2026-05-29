@@ -8,7 +8,7 @@ import (
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-framework/scope"
 	"github.com/xchwan/simple-web-app/internal/user"
-	walletdb "github.com/xchwan/simple-web-app/internal/wallet/db"
+	walletrepo "github.com/xchwan/simple-web-app/internal/wallet/repo"
 	"gorm.io/gorm"
 )
 
@@ -19,7 +19,7 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 		On(ErrForbidden, http.StatusForbidden, "Forbidden").
 		On(ErrNameFormatInvalid, http.StatusBadRequest, "Wallet name format invalid")
 
-	repo := walletdb.NewMySQLWalletRepository(database)
+	repo := walletrepo.NewMySQLWalletRepository(database)
 	router.Bind("walletService", func() any {
 		return NewWalletService(repo)
 	}, scope.NewHttpRequestScope())

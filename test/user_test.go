@@ -13,7 +13,7 @@ import (
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-app/internal/booking"
-	"github.com/xchwan/simple-web-app/internal/db"
+	"github.com/xchwan/simple-web-app/internal/infra"
 	"github.com/xchwan/simple-web-app/internal/event"
 	"github.com/xchwan/simple-web-app/internal/ticket"
 	"github.com/xchwan/simple-web-app/internal/user"
@@ -23,11 +23,11 @@ import (
 // ===== 測試環境設定 =====
 
 func newRouter() http.Handler {
-	database, err := db.Connect()
+	database, err := infra.Connect()
 	if err != nil {
 		panic("DB 連線失敗: " + err.Error())
 	}
-	rdb := db.ConnectRedis()
+	rdb := infra.ConnectRedis()
 
 	mapper := plugin.NewExceptionMapperPlugin()
 	router := framework.NewRouter()
@@ -47,11 +47,11 @@ func TestMain(m *testing.M) {
 		fmt.Println("⚠️  跳過 integration tests（請先執行 make up，再用 make test）")
 		os.Exit(0)
 	}
-	database, err := db.Connect()
+	database, err := infra.Connect()
 	if err != nil {
 		panic("DB 連線失敗: " + err.Error())
 	}
-	if err := db.Migrate(database); err != nil {
+	if err := infra.Migrate(database); err != nil {
 		panic("Migration 失敗: " + err.Error())
 	}
 	cleanUp()
@@ -60,7 +60,7 @@ func TestMain(m *testing.M) {
 
 // cleanUp 清空所有資料表與 Redis session，確保測試隔離。
 func cleanUp() {
-	database, err := db.Connect()
+	database, err := infra.Connect()
 	if err != nil {
 		panic("DB 連線失敗: " + err.Error())
 	}
@@ -70,7 +70,7 @@ func cleanUp() {
 	database.Exec("DELETE FROM wallets")
 	database.Exec("DELETE FROM users")
 
-	rdb := db.ConnectRedis()
+	rdb := infra.ConnectRedis()
 	rdb.FlushDB(context.Background())
 }
 

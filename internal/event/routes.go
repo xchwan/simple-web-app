@@ -8,15 +8,12 @@ import (
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
 	"github.com/xchwan/simple-web-framework/scope"
-	eventdb "github.com/xchwan/simple-web-app/internal/event/db"
+	eventrepo "github.com/xchwan/simple-web-app/internal/event/repo"
 	"github.com/xchwan/simple-web-app/internal/user"
 	"gorm.io/gorm"
 )
 
 // SetupRoutes 向 router 註冊 event 相關的依賴與路由。
-//
-// esClient 可為 nil，表示不啟用 Elasticsearch；
-// 傳入有效 client 時，Search 走 ES 全文索引，其餘寫入同步雙寫 MySQL + ES。
 func SetupRoutes(router *framework.Router, database *gorm.DB, esClient *elasticsearch.Client, mapper *plugin.ExceptionMapperPlugin) {
 	mapper.
 		On(ErrNotFound, http.StatusNotFound, "Event not found").
@@ -24,14 +21,11 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, esClient *elastics
 		On(ErrNameFormatInvalid, http.StatusBadRequest, "Event name format invalid").
 		On(ErrStartAtInvalid, http.StatusBadRequest, "Event start time invalid")
 
-	mysqlRepo := eventdb.NewMySQLRepository(database)
-	var repo eventdb.EventRepository = mysqlRepo
-	if esClient != nil {
-		repo = eventdb.NewElasticRepository(esClient, mysqlRepo)
-	}
+	repo := eventrepo.NewMySQLRepository(database)
+	searchRepo := eventrepo.NewElasticSearchRepository(esClient)
 
 	router.Bind("eventService", func() any {
-		return NewEventService(repo)
+		return NewEventService(repo, searchRepo)
 	}, scope.NewHttpRequestScope())
 
 	h := NewEventHandler()

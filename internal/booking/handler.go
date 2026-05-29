@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	framework "github.com/xchwan/simple-web-framework"
-	bookingdb "github.com/xchwan/simple-web-app/internal/booking/db"
+	bookingrepo "github.com/xchwan/simple-web-app/internal/booking/repo"
 	"github.com/xchwan/simple-web-app/internal/user"
 )
 
@@ -28,7 +28,7 @@ type BookingResponse struct {
 	UserID   int                    `json:"userId"`
 	TicketID int                    `json:"ticketId"`
 	WalletID int                    `json:"walletId"`
-	Status   bookingdb.BookingStatus `json:"status"`
+	Status   bookingrepo.BookingStatus `json:"status"`
 	BookedAt interface{}             `json:"bookedAt"`
 }
 
@@ -61,7 +61,7 @@ func (h *BookingHandler) List(w http.ResponseWriter, r *http.Request) {
 	framework.Respond(w, r, http.StatusOK, result)
 }
 
-func toBookingResponse(b *bookingdb.Booking) BookingResponse {
+func toBookingResponse(b *bookingrepo.Booking) BookingResponse {
 	return BookingResponse{
 		ID:       b.ID,
 		UserID:   b.UserID,

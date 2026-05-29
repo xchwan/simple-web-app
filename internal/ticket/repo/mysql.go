@@ -1,4 +1,4 @@
-package ticketdb
+package ticketrepo
 
 import "gorm.io/gorm"
 
@@ -8,7 +8,7 @@ type MySQLTicketRepository struct {
 }
 
 // NewMySQLTicketRepository 建立一個 MySQLTicketRepository。
-func NewMySQLTicketRepository(db *gorm.DB) TicketRepository {
+func NewMySQLTicketRepository(db *gorm.DB) *MySQLTicketRepository {
 	return &MySQLTicketRepository{db: db}
 }
 

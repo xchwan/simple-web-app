@@ -6,7 +6,7 @@ import (
 
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-app/internal/user"
-	walletdb "github.com/xchwan/simple-web-app/internal/wallet/db"
+	walletrepo "github.com/xchwan/simple-web-app/internal/wallet/repo"
 )
 
 // WalletHandler 負責處理錢包相關的 HTTP 請求。
@@ -78,6 +78,6 @@ func (h *WalletHandler) List(w http.ResponseWriter, r *http.Request) {
 	framework.Respond(w, r, http.StatusOK, result)
 }
 
-func toWalletResponse(w *walletdb.Wallet) WalletResponse {
+func toWalletResponse(w *walletrepo.Wallet) WalletResponse {
 	return WalletResponse{ID: w.ID, UserID: w.UserID, Name: w.Name, Balance: w.Balance}
 }

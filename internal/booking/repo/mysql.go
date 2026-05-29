@@ -1,4 +1,4 @@
-package bookingdb
+package bookingrepo
 
 import "gorm.io/gorm"
 
@@ -8,7 +8,7 @@ type MySQLBookingRepository struct {
 }
 
 // NewMySQLBookingRepository 建立一個 MySQLBookingRepository。
-func NewMySQLBookingRepository(db *gorm.DB) BookingRepository {
+func NewMySQLBookingRepository(db *gorm.DB) *MySQLBookingRepository {
 	return &MySQLBookingRepository{db: db}
 }
 
