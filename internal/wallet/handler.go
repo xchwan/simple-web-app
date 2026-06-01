@@ -27,6 +27,10 @@ type CreateWalletRequest struct {
 	Name string `json:"name"`
 }
 
+type AmountRequest struct {
+	Amount float64 `json:"amount"`
+}
+
 type WalletResponse struct {
 	ID      int     `json:"id"`
 	UserID  int     `json:"userId"`
@@ -76,6 +80,46 @@ func (h *WalletHandler) List(w http.ResponseWriter, r *http.Request) {
 		result[i] = toWalletResponse(wallet)
 	}
 	framework.Respond(w, r, http.StatusOK, result)
+}
+
+// Deposit 處理 POST /api/wallets/{walletId}/deposit。
+func (h *WalletHandler) Deposit(w http.ResponseWriter, r *http.Request) {
+	caller := user.Caller(r)
+	id, err := strconv.Atoi(framework.PathParam(r, "walletId"))
+	if err != nil {
+		framework.HandleError(w, r, ErrNotFound)
+		return
+	}
+	var req AmountRequest
+	if err := framework.ParseOrRespond(w, r, &req); err != nil {
+		return
+	}
+	wallet, svcErr := h.service(r).Deposit(caller.ID, id, req.Amount)
+	if svcErr != nil {
+		framework.HandleError(w, r, svcErr)
+		return
+	}
+	framework.Respond(w, r, http.StatusOK, toWalletResponse(wallet))
+}
+
+// Withdraw 處理 POST /api/wallets/{walletId}/withdraw。
+func (h *WalletHandler) Withdraw(w http.ResponseWriter, r *http.Request) {
+	caller := user.Caller(r)
+	id, err := strconv.Atoi(framework.PathParam(r, "walletId"))
+	if err != nil {
+		framework.HandleError(w, r, ErrNotFound)
+		return
+	}
+	var req AmountRequest
+	if err := framework.ParseOrRespond(w, r, &req); err != nil {
+		return
+	}
+	wallet, svcErr := h.service(r).Withdraw(caller.ID, id, req.Amount)
+	if svcErr != nil {
+		framework.HandleError(w, r, svcErr)
+		return
+	}
+	framework.Respond(w, r, http.StatusOK, toWalletResponse(wallet))
 }
 
 func toWalletResponse(w *walletrepo.Wallet) WalletResponse {

@@ -156,3 +156,192 @@ func TestGetWallet_NotFound(t *testing.T) {
 		t.Fatalf("expected 404, got %d", w.Code)
 	}
 }
+
+// ===== B4：存款 =====
+
+func TestDeposit_Success(t *testing.T) {
+	withCleanDB(t)
+	router := newRouter()
+	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+	wallet := createWallet(t, router, token, "Main Wallet")
+	id := int(wallet["id"].(float64))
+
+	w := request(t, router, http.MethodPost, fmt.Sprintf("/api/wallets/%d/deposit", id), map[string]any{
+		"amount": 500.0,
+	}, token)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	resp := decode[map[string]any](t, w)
+	if resp["balance"] != float64(500) {
+		t.Errorf("expected balance 500, got %v", resp["balance"])
+	}
+}
+
+func TestDeposit_Unauthenticated(t *testing.T) {
+	w := request(t, newRouter(), http.MethodPost, "/api/wallets/1/deposit", map[string]any{"amount": 100.0}, "")
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+}
+
+func TestDeposit_Forbidden(t *testing.T) {
+	withCleanDB(t)
+	router := newRouter()
+	aliceToken, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+	bobToken, _ := registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")
+	wallet := createWallet(t, router, aliceToken, "Alice Wallet")
+	id := int(wallet["id"].(float64))
+
+	w := request(t, router, http.MethodPost, fmt.Sprintf("/api/wallets/%d/deposit", id), map[string]any{
+		"amount": 100.0,
+	}, bobToken)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", w.Code)
+	}
+}
+
+func TestDeposit_NotFound(t *testing.T) {
+	withCleanDB(t)
+	router := newRouter()
+	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+
+	w := request(t, router, http.MethodPost, "/api/wallets/99999/deposit", map[string]any{"amount": 100.0}, token)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+func TestDeposit_AmountInvalid(t *testing.T) {
+	withCleanDB(t)
+	router := newRouter()
+	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+	wallet := createWallet(t, router, token, "Main Wallet")
+	id := int(wallet["id"].(float64))
+
+	cases := []struct {
+		name   string
+		amount float64
+	}{
+		{"zero", 0},
+		{"negative", -100},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := request(t, router, http.MethodPost, fmt.Sprintf("/api/wallets/%d/deposit", id), map[string]any{
+				"amount": tc.amount,
+			}, token)
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("expected 400, got %d", w.Code)
+			}
+		})
+	}
+}
+
+// ===== B5：提款 =====
+
+func TestWithdraw_Success(t *testing.T) {
+	withCleanDB(t)
+	router := newRouter()
+	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+	wallet := createWallet(t, router, token, "Main Wallet")
+	id := int(wallet["id"].(float64))
+
+	// 先存款
+	request(t, router, http.MethodPost, fmt.Sprintf("/api/wallets/%d/deposit", id), map[string]any{"amount": 1000.0}, token)
+
+	w := request(t, router, http.MethodPost, fmt.Sprintf("/api/wallets/%d/withdraw", id), map[string]any{
+		"amount": 300.0,
+	}, token)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	resp := decode[map[string]any](t, w)
+	if resp["balance"] != float64(700) {
+		t.Errorf("expected balance 700, got %v", resp["balance"])
+	}
+}
+
+func TestWithdraw_Unauthenticated(t *testing.T) {
+	w := request(t, newRouter(), http.MethodPost, "/api/wallets/1/withdraw", map[string]any{"amount": 100.0}, "")
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", w.Code)
+	}
+}
+
+func TestWithdraw_Forbidden(t *testing.T) {
+	withCleanDB(t)
+	router := newRouter()
+	aliceToken, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+	bobToken, _ := registerAndLogin(t, router, "bob@example.com", "Bobby", "pass1234")
+	wallet := createWallet(t, router, aliceToken, "Alice Wallet")
+	id := int(wallet["id"].(float64))
+	request(t, router, http.MethodPost, fmt.Sprintf("/api/wallets/%d/deposit", id), map[string]any{"amount": 500.0}, aliceToken)
+
+	w := request(t, router, http.MethodPost, fmt.Sprintf("/api/wallets/%d/withdraw", id), map[string]any{
+		"amount": 100.0,
+	}, bobToken)
+
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected 403, got %d", w.Code)
+	}
+}
+
+func TestWithdraw_NotFound(t *testing.T) {
+	withCleanDB(t)
+	router := newRouter()
+	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+
+	w := request(t, router, http.MethodPost, "/api/wallets/99999/withdraw", map[string]any{"amount": 100.0}, token)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+func TestWithdraw_AmountInvalid(t *testing.T) {
+	withCleanDB(t)
+	router := newRouter()
+	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+	wallet := createWallet(t, router, token, "Main Wallet")
+	id := int(wallet["id"].(float64))
+
+	cases := []struct {
+		name   string
+		amount float64
+	}{
+		{"zero", 0},
+		{"negative", -50},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			w := request(t, router, http.MethodPost, fmt.Sprintf("/api/wallets/%d/withdraw", id), map[string]any{
+				"amount": tc.amount,
+			}, token)
+			if w.Code != http.StatusBadRequest {
+				t.Errorf("expected 400, got %d", w.Code)
+			}
+		})
+	}
+}
+
+func TestWithdraw_InsufficientBalance(t *testing.T) {
+	withCleanDB(t)
+	router := newRouter()
+	token, _ := registerAndLogin(t, router, "alice@example.com", "Alice", "pass1234")
+	wallet := createWallet(t, router, token, "Main Wallet")
+	id := int(wallet["id"].(float64))
+	request(t, router, http.MethodPost, fmt.Sprintf("/api/wallets/%d/deposit", id), map[string]any{"amount": 100.0}, token)
+
+	w := request(t, router, http.MethodPost, fmt.Sprintf("/api/wallets/%d/withdraw", id), map[string]any{
+		"amount": 200.0,
+	}, token)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d", w.Code)
+	}
+}

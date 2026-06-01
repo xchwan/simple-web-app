@@ -10,33 +10,36 @@ import (
 	"os"
 	"testing"
 
+	"github.com/redis/go-redis/v9"
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-app/internal/booking"
-	"github.com/xchwan/simple-web-app/internal/infra"
 	"github.com/xchwan/simple-web-app/internal/event"
+	"github.com/xchwan/simple-web-app/internal/infra"
 	"github.com/xchwan/simple-web-app/internal/ticket"
 	"github.com/xchwan/simple-web-app/internal/user"
 	"github.com/xchwan/simple-web-app/internal/wallet"
+	"gorm.io/gorm"
 )
 
 // ===== 測試環境設定 =====
 
-func newRouter() http.Handler {
-	database, err := infra.Connect()
-	if err != nil {
-		panic("DB 連線失敗: " + err.Error())
-	}
-	rdb := infra.ConnectRedis()
+// testDB / testRDB 在 TestMain 初始化後由所有測試共用，
+// 避免每個 test 各自開新連線池而耗盡 MySQL max_connections。
+var (
+	testDB  *gorm.DB
+	testRDB *redis.Client
+)
 
+func newRouter() http.Handler {
 	mapper := plugin.NewExceptionMapperPlugin()
 	router := framework.NewRouter()
 	router.AddPlugin(mapper)
-	user.SetupRoutes(router, database, rdb, mapper)
-	wallet.SetupRoutes(router, database, mapper)
-	event.SetupRoutes(router, database, nil, mapper) // nil = MySQL-only，不需要 ES
-	ticket.SetupRoutes(router, database, mapper)
-	booking.SetupRoutes(router, database, mapper)
+	user.SetupRoutes(router, testDB, testRDB, mapper)
+	wallet.SetupRoutes(router, testDB, mapper)
+	event.SetupRoutes(router, testDB, nil, mapper) // nil = MySQL-only，不需要 ES
+	ticket.SetupRoutes(router, testDB, mapper)
+	booking.SetupRoutes(router, testDB, mapper)
 	return router
 }
 
@@ -54,24 +57,20 @@ func TestMain(m *testing.M) {
 	if err := infra.Migrate(database); err != nil {
 		panic("Migration 失敗: " + err.Error())
 	}
+	testDB = database
+	testRDB = infra.ConnectRedis()
 	cleanUp()
 	os.Exit(m.Run())
 }
 
 // cleanUp 清空所有資料表與 Redis session，確保測試隔離。
 func cleanUp() {
-	database, err := infra.Connect()
-	if err != nil {
-		panic("DB 連線失敗: " + err.Error())
-	}
-	database.Exec("DELETE FROM bookings")
-	database.Exec("DELETE FROM tickets")
-	database.Exec("DELETE FROM events")
-	database.Exec("DELETE FROM wallets")
-	database.Exec("DELETE FROM users")
-
-	rdb := infra.ConnectRedis()
-	rdb.FlushDB(context.Background())
+	testDB.Exec("DELETE FROM bookings")
+	testDB.Exec("DELETE FROM tickets")
+	testDB.Exec("DELETE FROM events")
+	testDB.Exec("DELETE FROM wallets")
+	testDB.Exec("DELETE FROM users")
+	testRDB.FlushDB(context.Background())
 }
 
 // withCleanDB 在測試前後各清空一次 DB，確保每個測試完全隔離。

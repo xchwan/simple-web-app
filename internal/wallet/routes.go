@@ -17,7 +17,9 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 	mapper.
 		On(ErrNotFound, http.StatusNotFound, "Wallet not found").
 		On(ErrForbidden, http.StatusForbidden, "Forbidden").
-		On(ErrNameFormatInvalid, http.StatusBadRequest, "Wallet name format invalid")
+		On(ErrNameFormatInvalid, http.StatusBadRequest, "Wallet name format invalid").
+		On(ErrAmountInvalid, http.StatusBadRequest, "Amount must be > 0").
+		On(ErrInsufficientBalance, http.StatusUnprocessableEntity, "Insufficient balance")
 
 	repo := walletrepo.NewMySQLWalletRepository(database)
 	router.Bind("walletService", func() any {
@@ -30,4 +32,6 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 	protected.POST("/wallets", apidoc.Doc[CreateWalletRequest, WalletResponse](h.Create, "Create a wallet"))
 	protected.GET("/wallets", apidoc.Doc[apidoc.NoBody, []WalletResponse](h.List, "List my wallets"))
 	protected.GET("/wallets/{walletId}", apidoc.Doc[apidoc.NoBody, WalletResponse](h.Get, "Get wallet by ID"))
+	protected.POST("/wallets/{walletId}/deposit", apidoc.Doc[AmountRequest, WalletResponse](h.Deposit, "Deposit to wallet"))
+	protected.POST("/wallets/{walletId}/withdraw", apidoc.Doc[AmountRequest, WalletResponse](h.Withdraw, "Withdraw from wallet"))
 }

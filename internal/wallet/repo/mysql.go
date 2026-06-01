@@ -32,3 +32,29 @@ func (r *MySQLWalletRepository) FindByUserID(userID int) []*Wallet {
 	r.db.Where("user_id = ?", userID).Find(&wallets)
 	return wallets
 }
+
+// Deposit 原子性地將 amount 加到餘額，回傳更新後的錢包。
+func (r *MySQLWalletRepository) Deposit(id int, amount float64) (*Wallet, error) {
+	if err := r.db.Exec("UPDATE wallets SET balance = balance + ? WHERE id = ?", amount, id).Error; err != nil {
+		return nil, err
+	}
+	w, _ := r.FindByID(id)
+	return w, nil
+}
+
+// Withdraw 原子性地扣款：只有 balance >= amount 才會執行。
+// ok=false 表示餘額不足（非 DB 錯誤）。
+func (r *MySQLWalletRepository) Withdraw(id int, amount float64) (w *Wallet, ok bool, err error) {
+	result := r.db.Exec(
+		"UPDATE wallets SET balance = balance - ? WHERE id = ? AND balance >= ?",
+		amount, id, amount,
+	)
+	if result.Error != nil {
+		return nil, false, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, false, nil
+	}
+	w, _ = r.FindByID(id)
+	return w, true, nil
+}
