@@ -12,6 +12,11 @@ func NewMySQLTicketRepository(db *gorm.DB) *MySQLTicketRepository {
 	return &MySQLTicketRepository{db: db}
 }
 
+// WithTx 回傳一個綁定到 tx 的新 repository 實例，供跨表交易使用。
+func (r *MySQLTicketRepository) WithTx(tx *gorm.DB) *MySQLTicketRepository {
+	return &MySQLTicketRepository{db: tx}
+}
+
 // SaveAll 批次新增票券。
 func (r *MySQLTicketRepository) SaveAll(tickets []*Ticket) error {
 	return r.db.Create(&tickets).Error

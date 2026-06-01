@@ -12,6 +12,11 @@ func NewMySQLBookingRepository(db *gorm.DB) *MySQLBookingRepository {
 	return &MySQLBookingRepository{db: db}
 }
 
+// WithTx 回傳一個綁定到 tx 的新 repository 實例，供跨表交易使用。
+func (r *MySQLBookingRepository) WithTx(tx *gorm.DB) *MySQLBookingRepository {
+	return &MySQLBookingRepository{db: tx}
+}
+
 // FindByID 依訂票編號查詢。
 func (r *MySQLBookingRepository) FindByID(id int) (*Booking, bool) {
 	var b Booking

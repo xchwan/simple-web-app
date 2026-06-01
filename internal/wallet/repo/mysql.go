@@ -12,6 +12,11 @@ func NewMySQLWalletRepository(db *gorm.DB) *MySQLWalletRepository {
 	return &MySQLWalletRepository{db: db}
 }
 
+// WithTx 回傳一個綁定到 tx 的新 repository 實例，供跨表交易使用。
+func (r *MySQLWalletRepository) WithTx(tx *gorm.DB) *MySQLWalletRepository {
+	return &MySQLWalletRepository{db: tx}
+}
+
 // Save 新增一個錢包。
 func (r *MySQLWalletRepository) Save(w *Wallet) error {
 	return r.db.Create(w).Error
