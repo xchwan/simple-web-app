@@ -48,3 +48,16 @@ func (r *MySQLTicketRepository) CountByEvent(eventID int) int {
 	r.db.Model(&Ticket{}).Where("event_id = ?", eventID).Count(&count)
 	return int(count)
 }
+
+// MarkSold 原子性地將票券標記為已售出（僅 status='available' 時才更新）。
+// ok=false 表示票券已被搶走（非 DB 錯誤）。
+func (r *MySQLTicketRepository) MarkSold(id int) (ok bool, err error) {
+	result := r.db.Exec(
+		"UPDATE tickets SET status = ? WHERE id = ? AND status = ?",
+		StatusSold, id, StatusAvailable,
+	)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected > 0, nil
+}

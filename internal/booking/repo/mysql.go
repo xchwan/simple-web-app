@@ -32,3 +32,8 @@ func (r *MySQLBookingRepository) FindByUserID(userID int) []*Booking {
 	r.db.Where("user_id = ?", userID).Find(&bookings)
 	return bookings
 }
+
+// Save 建立一筆新訂票紀錄。
+func (r *MySQLBookingRepository) Save(b *Booking) error {
+	return r.db.Create(b).Error
+}

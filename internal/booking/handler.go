@@ -23,6 +23,11 @@ func (h *BookingHandler) service(r *http.Request) *BookingService {
 
 // ===== Request / Response DTO =====
 
+type CreateBookingRequest struct {
+	TicketID int `json:"ticketId"`
+	WalletID int `json:"walletId"`
+}
+
 type BookingResponse struct {
 	ID       int                    `json:"id"`
 	UserID   int                    `json:"userId"`
@@ -33,6 +38,21 @@ type BookingResponse struct {
 }
 
 // ===== Handlers =====
+
+// Create 處理 POST /api/bookings。
+func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
+	caller := user.Caller(r)
+	var req CreateBookingRequest
+	if err := framework.ParseOrRespond(w, r, &req); err != nil {
+		return
+	}
+	b, svcErr := h.service(r).Create(caller.ID, req.TicketID, req.WalletID)
+	if svcErr != nil {
+		framework.HandleError(w, r, svcErr)
+		return
+	}
+	framework.Respond(w, r, http.StatusCreated, toBookingResponse(b))
+}
 
 // Get 處理 GET /api/bookings/{bookingId}。
 func (h *BookingHandler) Get(w http.ResponseWriter, r *http.Request) {
