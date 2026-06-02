@@ -42,6 +42,56 @@ func (s *BookingService) ListByUser(userID int) []*bookingrepo.Booking {
 	return s.db.FindByUserID(userID)
 }
 
+// Cancel 取消訂票，在同一個交易內完成：
+// 1. 將訂票標記為已取消（原子條件 UPDATE）
+// 2. 將票券狀態改回 available
+// 3. 退款至原錢包
+func (s *BookingService) Cancel(callerID, bookingID int) (*bookingrepo.Booking, error) {
+	b, exists := s.db.FindByID(bookingID)
+	if !exists {
+		return nil, ErrNotFound
+	}
+	if b.UserID != callerID {
+		return nil, ErrForbidden
+	}
+	if b.Status == bookingrepo.StatusCancelled {
+		return nil, ErrAlreadyCancelled
+	}
+
+	ticket, exists := s.ticketDB.FindByID(b.TicketID)
+	if !exists {
+		return nil, ErrTicketNotFound
+	}
+
+	err := s.rawDB.Transaction(func(tx *gorm.DB) error {
+		// 1. 原子性取消（並發時的最終防線）
+		ok, err := s.db.WithTx(tx).Cancel(bookingID)
+		if err != nil {
+			return err
+		}
+		if !ok {
+			return ErrAlreadyCancelled
+		}
+
+		// 2. 票券退回 available
+		if err := s.ticketDB.WithTx(tx).MarkAvailable(b.TicketID); err != nil {
+			return err
+		}
+
+		// 3. 退款
+		if _, err := s.walletDB.WithTx(tx).Deposit(b.WalletID, ticket.Price); err != nil {
+			return err
+		}
+
+		b.Status = bookingrepo.StatusCancelled
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
 // Create 建立訂票，在同一個交易內完成：
 // 1. 將票券標記為已售出（原子條件 UPDATE）
 // 2. 從指定錢包扣款（原子條件 UPDATE）

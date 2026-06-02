@@ -9,4 +9,5 @@ var (
 	ErrWalletNotFound      = errors.New("wallet not found")
 	ErrTicketUnavailable   = errors.New("ticket is not available")
 	ErrInsufficientBalance = errors.New("insufficient balance")
+	ErrAlreadyCancelled    = errors.New("booking already cancelled")
 )

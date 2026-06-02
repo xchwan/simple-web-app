@@ -54,6 +54,22 @@ func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
 	framework.Respond(w, r, http.StatusCreated, toBookingResponse(b))
 }
 
+// Cancel 處理 DELETE /api/bookings/{bookingId}。
+func (h *BookingHandler) Cancel(w http.ResponseWriter, r *http.Request) {
+	caller := user.Caller(r)
+	id, err := strconv.Atoi(framework.PathParam(r, "bookingId"))
+	if err != nil {
+		framework.HandleError(w, r, ErrNotFound)
+		return
+	}
+	b, svcErr := h.service(r).Cancel(caller.ID, id)
+	if svcErr != nil {
+		framework.HandleError(w, r, svcErr)
+		return
+	}
+	framework.Respond(w, r, http.StatusOK, toBookingResponse(b))
+}
+
 // Get 處理 GET /api/bookings/{bookingId}。
 func (h *BookingHandler) Get(w http.ResponseWriter, r *http.Request) {
 	caller := user.Caller(r)

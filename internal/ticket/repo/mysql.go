@@ -61,3 +61,11 @@ func (r *MySQLTicketRepository) MarkSold(id int) (ok bool, err error) {
 	}
 	return result.RowsAffected > 0, nil
 }
+
+// MarkAvailable 將票券狀態改回 available（取消訂票時退票用）。
+func (r *MySQLTicketRepository) MarkAvailable(id int) error {
+	return r.db.Exec(
+		"UPDATE tickets SET status = ? WHERE id = ?",
+		StatusAvailable, id,
+	).Error
+}

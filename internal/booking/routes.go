@@ -22,7 +22,8 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 		On(ErrTicketNotFound, http.StatusNotFound, "Ticket not found").
 		On(ErrWalletNotFound, http.StatusNotFound, "Wallet not found").
 		On(ErrTicketUnavailable, http.StatusConflict, "Ticket is not available").
-		On(ErrInsufficientBalance, http.StatusUnprocessableEntity, "Insufficient balance")
+		On(ErrInsufficientBalance, http.StatusUnprocessableEntity, "Insufficient balance").
+		On(ErrAlreadyCancelled, http.StatusConflict, "Booking already cancelled")
 
 	repo := bookingrepo.NewMySQLBookingRepository(database)
 	ticketDB := ticketrepo.NewMySQLTicketRepository(database)
@@ -38,4 +39,5 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 	protected.POST("/bookings", apidoc.Doc[CreateBookingRequest, BookingResponse](h.Create, "Create a booking"))
 	protected.GET("/bookings", apidoc.Doc[apidoc.NoBody, []BookingResponse](h.List, "List my bookings"))
 	protected.GET("/bookings/{bookingId}", apidoc.Doc[apidoc.NoBody, BookingResponse](h.Get, "Get booking by ID"))
+	protected.DELETE("/bookings/{bookingId}", apidoc.Doc[apidoc.NoBody, BookingResponse](h.Cancel, "Cancel a booking"))
 }

@@ -37,3 +37,16 @@ func (r *MySQLBookingRepository) FindByUserID(userID int) []*Booking {
 func (r *MySQLBookingRepository) Save(b *Booking) error {
 	return r.db.Create(b).Error
 }
+
+// Cancel 原子性地將訂票標記為已取消（僅 status='confirmed' 時才更新）。
+// ok=false 表示已是取消狀態（非 DB 錯誤）。
+func (r *MySQLBookingRepository) Cancel(id int) (ok bool, err error) {
+	result := r.db.Exec(
+		"UPDATE bookings SET status = ? WHERE id = ? AND status = ?",
+		StatusCancelled, id, StatusConfirmed,
+	)
+	if result.Error != nil {
+		return false, result.Error
+	}
+	return result.RowsAffected > 0, nil
+}
