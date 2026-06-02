@@ -3,6 +3,7 @@ package booking
 import (
 	"net/http"
 
+	"github.com/redis/go-redis/v9"
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-framework/plugin"
 	"github.com/xchwan/simple-web-framework/plugin/apidoc"
@@ -15,7 +16,7 @@ import (
 )
 
 // SetupRoutes 向 router 註冊 booking 相關的依賴與路由。
-func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.ExceptionMapperPlugin) {
+func SetupRoutes(router *framework.Router, database *gorm.DB, rdb *redis.Client, mapper *plugin.ExceptionMapperPlugin) {
 	mapper.
 		On(ErrNotFound, http.StatusNotFound, "Booking not found").
 		On(ErrForbidden, http.StatusForbidden, "Forbidden").
@@ -30,7 +31,7 @@ func SetupRoutes(router *framework.Router, database *gorm.DB, mapper *plugin.Exc
 	walletDB := walletrepo.NewMySQLWalletRepository(database)
 
 	router.Bind("bookingService", func() any {
-		return NewBookingService(repo, ticketDB, walletDB, database)
+		return NewBookingService(repo, ticketDB, walletDB, database, rdb)
 	}, scope.NewHttpRequestScope())
 
 	h := NewBookingHandler()

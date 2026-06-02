@@ -38,7 +38,7 @@ func main() {
 	wallet.SetupRoutes(router, database, mapper)
 	event.SetupRoutes(router, database, esClient, mapper)
 	ticket.SetupRoutes(router, database, mapper)
-	booking.SetupRoutes(router, database, mapper)
+	booking.SetupRoutes(router, database, rdb, mapper)
 
 	router.GET("/docs", docs.UIHandler())
 	router.GET("/openapi.json", docs.SpecHandler())
