@@ -33,8 +33,8 @@ Redis SETNX(ticketID)
                     ▼
               202 Accepted ──────────────────────── Client 拿 ID 輪詢
                                                          │
-                         (非同步)                        │  GET /bookings/{id}
-                              │                          ▼
+                         (非同步)                         │  GET /bookings/{id}
+                          │                              ▼
                     Kafka Consumer              status: pending → confirmed
                           │
                     ┌─────┴───────────────┐
@@ -50,7 +50,8 @@ Redis SETNX(ticketID)
 - **Redis SETNX**：快速閘門，阻擋 99% 的重複請求（毫秒級）
 - **MySQL 原子 UPDATE**（`WHERE status='available'`）：最終正確性保證
 
-**Kafka 序列化**：key = ticketID，相同票的請求進同一 partition，consumer 串行處理，確保不重複售出。
+**Kafka 序列化**：
+  key = ticketID，相同票的請求進同一 partition，consumer 串行處理，確保不重複售出。
 
 ## 🛠️ 技術棧
 
