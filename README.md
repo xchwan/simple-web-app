@@ -37,13 +37,13 @@ Redis SETNX(ticketID)
                               │                          ▼
                     Kafka Consumer              status: pending → confirmed
                               │
-                    ┌─────────┴──────────┐
+                    ┌─────┴───────────────┐
                     │  BEGIN TRANSACTION  │
                     │  MarkSold(ticket)   │  WHERE status='available'
                     │  Withdraw(wallet)   │  WHERE balance >= price
                     │  status=confirmed   │
                     │  COMMIT             │
-                    └────────────────────┘
+                    └─────────────────────┘
 ```
 
 **兩層防護**：
