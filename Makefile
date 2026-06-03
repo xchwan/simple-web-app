@@ -52,6 +52,8 @@ test:
 		-v $(PWD):/app -v $(FRAMEWORK_DIR):$(FRAMEWORK_DIR) -v go-pkg-mod:/go/pkg/mod -v go-build-cache:/root/.cache/go/build -e GOMEMLIMIT=4GiB -w /app \
 		-e DB_DSN="app:secret@tcp(mysql:3306)/appdb_test?parseTime=true" \
 		-e REDIS_ADDR="redis:6379" \
+		-e KAFKA_BOOKING_TOPIC="booking-requests-test" \
+		-e ES_EVENTS_INDEX="events-test" \
 		$(IMAGE_NAME) go test -p 1 ./test/... -v
 # ===== 檢查與測試 (Check & Testing) =====
 

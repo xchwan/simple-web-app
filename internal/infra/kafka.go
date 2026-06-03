@@ -10,8 +10,16 @@ import (
 	"github.com/segmentio/kafka-go"
 )
 
-const BookingRequestsTopic = "booking-requests"
 const BookingTopicPartitions = 10
+
+// BookingTopic 回傳 booking 用的 Kafka topic 名稱。
+// 可透過 KAFKA_BOOKING_TOPIC 環境變數覆寫（測試用途）。
+func BookingTopic() string {
+	if t := os.Getenv("KAFKA_BOOKING_TOPIC"); t != "" {
+		return t
+	}
+	return "booking-requests"
+}
 
 // KafkaBrokers 從環境變數讀取 broker 位址，預設 localhost:9092。
 func KafkaBrokers() []string {

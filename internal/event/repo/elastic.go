@@ -5,13 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8"
 )
 
-const indexName = "events"
+// eventsIndex 回傳 ES index 名稱。
+// 可透過 ES_EVENTS_INDEX 環境變數覆寫（測試用途）。
+func eventsIndex() string {
+	if i := os.Getenv("ES_EVENTS_INDEX"); i != "" {
+		return i
+	}
+	return "events"
+}
 
 // indexMapping 定義 events 索引的欄位型別。
 const indexMapping = `{
@@ -66,7 +74,7 @@ func (r *ElasticEventSearchRepository) Index(e *Event) error {
 		return err
 	}
 	res, err := r.es.Index(
-		indexName,
+		eventsIndex(),
 		bytes.NewReader(body),
 		r.es.Index.WithDocumentID(fmt.Sprintf("%d", e.ID)),
 		r.es.Index.WithRefresh("true"),
@@ -84,7 +92,7 @@ func (r *ElasticEventSearchRepository) Index(e *Event) error {
 // Remove 從 ES 索引刪除指定文件。
 func (r *ElasticEventSearchRepository) Remove(id int) {
 	res, err := r.es.Delete(
-		indexName,
+		eventsIndex(),
 		fmt.Sprintf("%d", id),
 		r.es.Delete.WithRefresh("true"),
 	)
@@ -105,7 +113,7 @@ func (r *ElasticEventSearchRepository) Search(q EventQuery) ([]*Event, error) {
 		return nil, err
 	}
 	res, err := r.es.Search(
-		r.es.Search.WithIndex(indexName),
+		r.es.Search.WithIndex(eventsIndex()),
 		r.es.Search.WithBody(bytes.NewReader(body)),
 	)
 	if err != nil {
@@ -143,7 +151,7 @@ func (r *ElasticEventSearchRepository) Search(q EventQuery) ([]*Event, error) {
 
 // ensureIndex 若 events 索引不存在則建立，含欄位 mapping。
 func (r *ElasticEventSearchRepository) ensureIndex() {
-	res, err := r.es.Indices.Exists([]string{indexName})
+	res, err := r.es.Indices.Exists([]string{eventsIndex()})
 	if err != nil {
 		log.Printf("[ES] 檢查索引失敗: %v", err)
 		return
@@ -153,7 +161,7 @@ func (r *ElasticEventSearchRepository) ensureIndex() {
 		return
 	}
 	res2, err := r.es.Indices.Create(
-		indexName,
+		eventsIndex(),
 		r.es.Indices.Create.WithBody(strings.NewReader(indexMapping)),
 	)
 	if err != nil {
@@ -165,7 +173,7 @@ func (r *ElasticEventSearchRepository) ensureIndex() {
 		log.Printf("[ES] 建立索引回應錯誤: %s", res2.String())
 		return
 	}
-	log.Printf("[ES] 索引 %q 建立完成", indexName)
+	log.Printf("[ES] 索引 %q 建立完成", eventsIndex())
 }
 
 // buildSearchBody 組出 ES bool query。
