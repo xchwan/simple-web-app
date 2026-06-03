@@ -2,15 +2,26 @@ package booking
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"github.com/segmentio/kafka-go"
 	bookingrepo "github.com/xchwan/simple-web-app/internal/booking/repo"
 	ticketrepo "github.com/xchwan/simple-web-app/internal/ticket/repo"
 	walletrepo "github.com/xchwan/simple-web-app/internal/wallet/repo"
 	"gorm.io/gorm"
 )
+
+// bookingMessage 是發往 Kafka 的訊息格式。
+type bookingMessage struct {
+	BookingID int `json:"bookingId"`
+	TicketID  int `json:"ticketId"`
+	WalletID  int `json:"walletId"`
+	CallerID  int `json:"callerId"`
+}
 
 // ticketClaimKey 回傳該張票在 Redis 的搶位 key。
 func ticketClaimKey(ticketID int) string {
@@ -22,8 +33,9 @@ type BookingService struct {
 	db       *bookingrepo.MySQLBookingRepository
 	ticketDB *ticketrepo.MySQLTicketRepository
 	walletDB *walletrepo.MySQLWalletRepository
-	rawDB    *gorm.DB        // 用於開啟跨表交易
-	rdb      *redis.Client   // 用於搶票的 Redis 閘門
+	rawDB    *gorm.DB      // 用於開啟跨表交易
+	rdb      *redis.Client // 用於搶票的 Redis 閘門
+	kafka    *kafka.Writer // 用於非同步訂票
 }
 
 // NewBookingService 建立一個 BookingService。
@@ -33,8 +45,12 @@ func NewBookingService(
 	walletDB *walletrepo.MySQLWalletRepository,
 	rawDB *gorm.DB,
 	rdb *redis.Client,
+	kafkaWriter *kafka.Writer,
 ) *BookingService {
-	return &BookingService{db: db, ticketDB: ticketDB, walletDB: walletDB, rawDB: rawDB, rdb: rdb}
+	return &BookingService{
+		db: db, ticketDB: ticketDB, walletDB: walletDB,
+		rawDB: rawDB, rdb: rdb, kafka: kafkaWriter,
+	}
 }
 
 // GetByID 取得訂票紀錄，僅本人可存取。
@@ -107,21 +123,20 @@ func (s *BookingService) Cancel(callerID, bookingID int) (*bookingrepo.Booking, 
 	return b, nil
 }
 
-// Create 建立訂票。
-// Redis 閘門：SETNX 確保同一張票只有一個請求進到 MySQL，其餘直接回 409。
-// MySQL 交易：MarkSold + Withdraw + Save，任一步驟失敗整體 rollback。
-func (s *BookingService) Create(callerID, ticketID, walletID int) (*bookingrepo.Booking, error) {
-	// ── Redis 閘門（第一道防線，保護 MySQL）──────────────────────────────
+// Queue 非同步訂票：建立 pending booking 後發 Kafka，立即回傳。
+// Consumer 負責後續的 MarkSold + Withdraw + 更新狀態。
+func (s *BookingService) Queue(callerID, ticketID, walletID int) (*bookingrepo.Booking, error) {
 	ctx := context.Background()
+
+	// Redis 閘門：同一張票只允許一個請求進入流程
 	claimed, err := s.rdb.SetNX(ctx, ticketClaimKey(ticketID), callerID, 30*time.Second).Result()
 	if err != nil {
 		return nil, err
 	}
 	if !claimed {
-		return nil, ErrTicketUnavailable // 其他人已搶到，直接拒絕
+		return nil, ErrTicketUnavailable
 	}
 
-	// 若後續流程失敗，釋放 Redis 鎖讓票券可再次被搶
 	releaseOnFail := true
 	defer func() {
 		if releaseOnFail {
@@ -129,7 +144,7 @@ func (s *BookingService) Create(callerID, ticketID, walletID int) (*bookingrepo.
 		}
 	}()
 
-	// ── 交易前預檢（快速回傳有意義的錯誤）──────────────────────────────
+	// 預檢
 	ticket, exists := s.ticketDB.FindByID(ticketID)
 	if !exists {
 		return nil, ErrTicketNotFound
@@ -148,40 +163,100 @@ func (s *BookingService) Create(callerID, ticketID, walletID int) (*bookingrepo.
 		return nil, ErrInsufficientBalance
 	}
 
-	// ── MySQL 交易（第二道防線，保證原子性）─────────────────────────────
-	var created *bookingrepo.Booking
-	if err := s.rawDB.Transaction(func(tx *gorm.DB) error {
-		ok, err := s.ticketDB.WithTx(tx).MarkSold(ticketID)
+	// 建立 pending booking（作為 correlation ID）
+	b := &bookingrepo.Booking{
+		UserID:   callerID,
+		TicketID: ticketID,
+		WalletID: walletID,
+		Status:   bookingrepo.StatusPending,
+	}
+	if err := s.db.Save(b); err != nil {
+		return nil, err
+	}
+
+	// kafka 未設定時（測試環境）直接在交易內完成，行為等同 consumer 處理
+	if s.kafka == nil {
+		if err := s.rawDB.Transaction(func(tx *gorm.DB) error {
+			ok, err := s.ticketDB.WithTx(tx).MarkSold(ticketID)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return ErrTicketUnavailable
+			}
+			_, ok, err = s.walletDB.WithTx(tx).Withdraw(walletID, ticket.Price)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				return ErrInsufficientBalance
+			}
+			return s.db.WithTx(tx).UpdateStatus(b.ID, bookingrepo.StatusConfirmed)
+		}); err != nil {
+			s.db.UpdateStatus(b.ID, bookingrepo.StatusFailed)
+			return nil, err
+		}
+		s.rdb.Persist(ctx, ticketClaimKey(ticketID))
+		b.Status = bookingrepo.StatusConfirmed
+		releaseOnFail = false
+		return b, nil
+	}
+
+	// 發 Kafka（key=ticketID 確保同票序列化）
+	payload, _ := json.Marshal(bookingMessage{
+		BookingID: b.ID, TicketID: ticketID, WalletID: walletID, CallerID: callerID,
+	})
+	if err := s.kafka.WriteMessages(ctx, kafka.Message{
+		Key:   []byte(fmt.Sprintf("%d", ticketID)),
+		Value: payload,
+	}); err != nil {
+		s.db.UpdateStatus(b.ID, bookingrepo.StatusFailed)
+		return nil, err
+	}
+
+	releaseOnFail = false // 後續由 consumer 管理 Redis key
+	return b, nil
+}
+
+// processBooking 由 Kafka consumer 呼叫，執行實際的扣票 + 扣款交易。
+func (s *BookingService) processBooking(msg bookingMessage) {
+	ticket, exists := s.ticketDB.FindByID(msg.TicketID)
+	if !exists {
+		s.fail(msg.BookingID, msg.TicketID)
+		return
+	}
+
+	err := s.rawDB.Transaction(func(tx *gorm.DB) error {
+		ok, err := s.ticketDB.WithTx(tx).MarkSold(msg.TicketID)
 		if err != nil {
 			return err
 		}
 		if !ok {
 			return ErrTicketUnavailable
 		}
-
-		_, ok, err = s.walletDB.WithTx(tx).Withdraw(walletID, ticket.Price)
+		_, ok, err = s.walletDB.WithTx(tx).Withdraw(msg.WalletID, ticket.Price)
 		if err != nil {
 			return err
 		}
 		if !ok {
 			return ErrInsufficientBalance
 		}
-
-		b := &bookingrepo.Booking{
-			UserID:   callerID,
-			TicketID: ticketID,
-			WalletID: walletID,
-			Status:   bookingrepo.StatusConfirmed,
-		}
-		if err := s.db.WithTx(tx).Save(b); err != nil {
-			return err
-		}
-		created = b
-		return nil
-	}); err != nil {
-		return nil, err
+		return s.db.WithTx(tx).UpdateStatus(msg.BookingID, bookingrepo.StatusConfirmed)
+	})
+	if err != nil {
+		s.fail(msg.BookingID, msg.TicketID)
+		return
 	}
 
-	releaseOnFail = false // 訂票成功，Redis key 永久保留（票已售出）
-	return created, nil
+	// 訂票成功，Redis key 永久保留
+	s.rdb.Persist(context.Background(), ticketClaimKey(msg.TicketID))
+	log.Printf("[booking] confirmed bookingID=%d ticketID=%d", msg.BookingID, msg.TicketID)
 }
+
+// fail 將訂票標記為失敗並釋放 Redis 閘門。
+func (s *BookingService) fail(bookingID, ticketID int) {
+	s.db.UpdateStatus(bookingID, bookingrepo.StatusFailed)
+	s.rdb.Del(context.Background(), ticketClaimKey(ticketID))
+	log.Printf("[booking] failed bookingID=%d ticketID=%d", bookingID, ticketID)
+}
+

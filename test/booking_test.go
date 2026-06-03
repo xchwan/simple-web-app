@@ -96,7 +96,7 @@ func TestCreateBooking_Success(t *testing.T) {
 		"walletId": walletID,
 	}, token)
 
-	if w.Code != http.StatusCreated {
+	if w.Code != http.StatusAccepted {
 		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
 	}
 	resp := decode[map[string]any](t, w)
@@ -343,7 +343,7 @@ func TestConcurrentBooking_SameTicket(t *testing.T) {
 
 	successes := 0
 	for _, c := range codes {
-		if c == http.StatusCreated {
+		if c == http.StatusAccepted {
 			successes++
 		}
 	}

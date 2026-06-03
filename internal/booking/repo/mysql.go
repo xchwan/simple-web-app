@@ -38,6 +38,11 @@ func (r *MySQLBookingRepository) Save(b *Booking) error {
 	return r.db.Create(b).Error
 }
 
+// UpdateStatus 更新訂票狀態。
+func (r *MySQLBookingRepository) UpdateStatus(id int, status BookingStatus) error {
+	return r.db.Model(&Booking{}).Where("id = ?", id).Update("status", status).Error
+}
+
 // Cancel 原子性地將訂票標記為已取消（僅 status='confirmed' 時才更新）。
 // ok=false 表示已是取消狀態（非 DB 錯誤）。
 func (r *MySQLBookingRepository) Cancel(id int) (ok bool, err error) {

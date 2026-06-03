@@ -39,19 +39,19 @@ type BookingResponse struct {
 
 // ===== Handlers =====
 
-// Create 處理 POST /api/bookings。
-func (h *BookingHandler) Create(w http.ResponseWriter, r *http.Request) {
+// Queue 處理 POST /api/bookings（非同步搶票）。
+func (h *BookingHandler) Queue(w http.ResponseWriter, r *http.Request) {
 	caller := user.Caller(r)
 	var req CreateBookingRequest
 	if err := framework.ParseOrRespond(w, r, &req); err != nil {
 		return
 	}
-	b, svcErr := h.service(r).Create(caller.ID, req.TicketID, req.WalletID)
+	b, svcErr := h.service(r).Queue(caller.ID, req.TicketID, req.WalletID)
 	if svcErr != nil {
 		framework.HandleError(w, r, svcErr)
 		return
 	}
-	framework.Respond(w, r, http.StatusCreated, toBookingResponse(b))
+	framework.Respond(w, r, http.StatusAccepted, toBookingResponse(b))
 }
 
 // Cancel 處理 DELETE /api/bookings/{bookingId}。

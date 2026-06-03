@@ -6,8 +6,10 @@ import "time"
 type BookingStatus string
 
 const (
+	StatusPending   BookingStatus = "pending"
 	StatusConfirmed BookingStatus = "confirmed"
 	StatusCancelled BookingStatus = "cancelled"
+	StatusFailed    BookingStatus = "failed"
 )
 
 // Booking 代表一筆訂票紀錄。

@@ -4,8 +4,9 @@ MAIN_PATH=./cmd/main/main.go
 IMAGE_NAME=my-go-app-dev
 
 # Docker 執行命令共用參數
-DOCKER_RUN=docker run --rm -v $(PWD):/app -w /app $(IMAGE_NAME)
-DOCKER_RUN_TTY=docker run --rm -it -v $(PWD):/app -w /app $(IMAGE_NAME)
+FRAMEWORK_DIR=/Users/xch1/Documents/waterball/simple_web_framework
+DOCKER_RUN=docker run --rm -v $(PWD):/app -v $(FRAMEWORK_DIR):$(FRAMEWORK_DIR) -w /app $(IMAGE_NAME)
+DOCKER_RUN_TTY=docker run --rm -it -v $(PWD):/app -v $(FRAMEWORK_DIR):$(FRAMEWORK_DIR) -w /app $(IMAGE_NAME)
 
 # ===== 進入點 =====
 all: staticcheck format build
@@ -46,7 +47,7 @@ setup-test-db:
 test:
 	docker run --rm \
 		--network simple-web-app_default \
-		-v $(PWD):/app -w /app \
+		-v $(PWD):/app -v $(FRAMEWORK_DIR):$(FRAMEWORK_DIR) -w /app \
 		-e DB_DSN="app:secret@tcp(mysql:3306)/appdb_test?parseTime=true" \
 		-e REDIS_ADDR="redis:6379" \
 		$(IMAGE_NAME) go test ./test/... -v
