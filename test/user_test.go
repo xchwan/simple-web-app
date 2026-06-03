@@ -5,11 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
 
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/redis/go-redis/v9"
 	framework "github.com/xchwan/simple-web-framework"
 	"github.com/xchwan/simple-web-framework/plugin"
@@ -24,11 +26,12 @@ import (
 
 // ===== 測試環境設定 =====
 
-// testDB / testRDB 在 TestMain 初始化後由所有測試共用，
-// 避免每個 test 各自開新連線池而耗盡 MySQL max_connections。
+// 所有整合測試共用同一組連線，避免耗盡連線池。
 var (
-	testDB  *gorm.DB
-	testRDB *redis.Client
+	testDB           *gorm.DB
+	testRDB          *redis.Client
+	testKafkaBrokers []string           // KAFKA_BROKERS 有設定才初始化
+	testESClient     *elasticsearch.Client // ELASTIC_ADDR 有設定才初始化
 )
 
 func newRouter() http.Handler {
@@ -43,8 +46,8 @@ func newRouter() http.Handler {
 	return router
 }
 
-// TestMain 若未設定 DB_DSN 則跳過所有 integration test，
-// 否則先確保 schema 存在，再清空資料，確保每次執行都是乾淨的狀態。
+// TestMain 若未設定 DB_DSN 則跳過所有 integration test。
+// 初始化共用連線，並在所有測試執行前做一次完整清理。
 func TestMain(m *testing.M) {
 	if os.Getenv("DB_DSN") == "" {
 		fmt.Println("⚠️  跳過 integration tests（請先執行 make up，再用 make test）")
@@ -59,11 +62,27 @@ func TestMain(m *testing.M) {
 	}
 	testDB = database
 	testRDB = infra.ConnectRedis()
+
+	// Kafka：KAFKA_BROKERS 有設定才連（test 環境傳 kafka:9092）
+	if os.Getenv("KAFKA_BROKERS") != "" {
+		testKafkaBrokers = infra.KafkaBrokers()
+	}
+	// ES：ELASTIC_ADDR 有設定才連
+	testESClient = infra.TryConnectElastic()
+
+	// Kafka topic 只在整套測試開始前清一次（DeleteTopics 含 500ms 等待，不適合每個 test 都做）
+	if testKafkaBrokers != nil {
+		if err := infra.CleanTopic(testKafkaBrokers, infra.BookingTopic(), 1); err != nil {
+			log.Printf("[test] kafka topic cleanup: %v", err)
+		}
+	}
+
 	cleanUp()
 	os.Exit(m.Run())
 }
 
-// cleanUp 清空所有資料表與 Redis session，確保測試隔離。
+// cleanUp 清空 DB、Redis 和 ES index，確保每個測試都從乾淨狀態開始。
+// Kafka topic 只在 TestMain 清一次，這裡不清（避免每個 test 都等 500ms）。
 func cleanUp() {
 	testDB.Exec("DELETE FROM bookings")
 	testDB.Exec("DELETE FROM tickets")
@@ -71,6 +90,8 @@ func cleanUp() {
 	testDB.Exec("DELETE FROM wallets")
 	testDB.Exec("DELETE FROM users")
 	testRDB.FlushDB(context.Background())
+	// ES：刪掉 index，下次 SetupRoutes 呼叫 NewElasticEventSearchRepository 時會自動重建
+	infra.CleanESIndex(testESClient, os.Getenv("ES_EVENTS_INDEX"))
 }
 
 // withCleanDB 在測試前後各清空一次 DB，確保每個測試完全隔離。

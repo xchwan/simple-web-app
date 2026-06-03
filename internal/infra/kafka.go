@@ -2,10 +2,12 @@ package infra
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 )
@@ -59,6 +61,34 @@ func EnsureTopic(brokers []string, topic string, numPartitions int) error {
 		return fmt.Errorf("kafka create topic %s: %w", topic, err)
 	}
 	return nil
+}
+
+// CleanTopic 刪除並重建 topic，清空所有訊息（測試專用）。
+// Kafka 刪除是非同步的，等待 500ms 讓 broker 完成後再重建。
+func CleanTopic(brokers []string, topic string, numPartitions int) error {
+	conn, err := kafka.Dial("tcp", brokers[0])
+	if err != nil {
+		return fmt.Errorf("kafka dial: %w", err)
+	}
+	controller, err := conn.Controller()
+	conn.Close()
+	if err != nil {
+		return fmt.Errorf("kafka controller: %w", err)
+	}
+	ctrlConn, err := kafka.Dial("tcp", net.JoinHostPort(controller.Host, strconv.Itoa(controller.Port)))
+	if err != nil {
+		return fmt.Errorf("kafka controller dial: %w", err)
+	}
+	defer ctrlConn.Close()
+
+	// 刪除 topic（topic 不存在時也不報錯）
+	if err := ctrlConn.DeleteTopics(topic); err != nil {
+		log.Printf("[kafka] delete topic %q: %v (ignored)", topic, err)
+	}
+	// 等 broker 非同步完成刪除
+	time.Sleep(500 * time.Millisecond)
+
+	return EnsureTopic(brokers, topic, numPartitions)
 }
 
 // NewKafkaWriter 建立一個以 key hash 分配 partition 的 Kafka producer。
