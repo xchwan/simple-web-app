@@ -32,6 +32,9 @@ func main() {
 	esClient := infra.ConnectElastic()
 
 	brokers := infra.KafkaBrokers()
+	if err := infra.EnsureTopic(brokers, infra.BookingRequestsTopic, infra.BookingTopicPartitions); err != nil {
+		log.Printf("kafka topic setup warning: %v", err)
+	}
 	kafkaWriter := infra.NewKafkaWriter(brokers, infra.BookingRequestsTopic)
 	kafkaReader := infra.NewKafkaReader(brokers, infra.BookingRequestsTopic, "booking-consumer")
 	defer kafkaWriter.Close()
