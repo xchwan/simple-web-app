@@ -211,7 +211,9 @@ func (s *BookingService) Queue(callerID, ticketID, walletID int) (*bookingrepo.B
 		Value: payload,
 	}); err != nil {
 		s.db.UpdateStatus(b.ID, bookingrepo.StatusFailed)
-		return nil, err
+		// kafka.WriteErrors 是 slice type，不可 hash，不能直接 return 給 ExceptionMapper（會 panic）。
+		// 用 fmt.Errorf（no %w）包成 comparable 的 *errors.errorString。
+		return nil, fmt.Errorf("kafka write: %v", err)
 	}
 
 	releaseOnFail = false // 後續由 consumer 管理 Redis key
