@@ -51,7 +51,7 @@ Redis SETNX(ticketID)
 - **MySQL 原子 UPDATE**（`WHERE status='available'`）：最終正確性保證
 
 **Kafka 序列化**：
-  key = ticketID，相同票的請求進同一 partition，consumer 串行處理，確保不重複售出。
+- key = ticketID，相同票的請求進同一 partition，consumer 串行處理，確保不重複售出。
 
 ## 🛠️ 技術棧
 
@@ -170,7 +170,3 @@ make test
 ### 冪等性保護
 
 Kafka consumer 在 commit offset 前 crash → 重啟後重複投遞同一 message。Consumer 首先檢查 booking 是否已是 `confirmed`，若是則直接跳過，不重複扣款。
-
-## 📄 License
-
-MIT
