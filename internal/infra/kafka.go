@@ -42,15 +42,13 @@ func EnsureTopic(brokers []string, topic string, numPartitions int) error {
 	}
 	defer ctrlConn.Close()
 
-	topicErrors := ctrlConn.CreateTopics(kafka.TopicConfig{
+	err = ctrlConn.CreateTopics(kafka.TopicConfig{
 		Topic:             topic,
 		NumPartitions:     numPartitions,
 		ReplicationFactor: 1,
 	})
-	for _, te := range topicErrors {
-		if te.Err != nil && te.Err != kafka.TopicAlreadyExists {
-			return fmt.Errorf("kafka topic error %s: %w", te.Topic, te.Err)
-		}
+	if err != nil && err != kafka.TopicAlreadyExists {
+		return fmt.Errorf("kafka create topic %s: %w", topic, err)
 	}
 	return nil
 }

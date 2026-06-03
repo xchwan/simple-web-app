@@ -5,8 +5,10 @@ IMAGE_NAME=my-go-app-dev
 
 # Docker 執行命令共用參數
 FRAMEWORK_DIR=/Users/xch1/Documents/waterball/simple_web_framework
-DOCKER_RUN=docker run --rm -v $(PWD):/app -v $(FRAMEWORK_DIR):$(FRAMEWORK_DIR) -w /app $(IMAGE_NAME)
-DOCKER_RUN_TTY=docker run --rm -it -v $(PWD):/app -v $(FRAMEWORK_DIR):$(FRAMEWORK_DIR) -w /app $(IMAGE_NAME)
+# go-pkg-mod  : Go module cache（原始碼），避免重複下載
+# go-build-cache : Go build cache（編譯結果），避免重複編譯大型 package（redis、elasticsearch 等）
+DOCKER_RUN=docker run --rm -v $(PWD):/app -v $(FRAMEWORK_DIR):$(FRAMEWORK_DIR) -v go-pkg-mod:/go/pkg/mod -v go-build-cache:/root/.cache/go/build -e GOMEMLIMIT=4GiB -w /app $(IMAGE_NAME)
+DOCKER_RUN_TTY=docker run --rm -it -v $(PWD):/app -v $(FRAMEWORK_DIR):$(FRAMEWORK_DIR) -v go-pkg-mod:/go/pkg/mod -v go-build-cache:/root/.cache/go/build -e GOMEMLIMIT=4GiB -w /app $(IMAGE_NAME)
 
 # ===== 進入點 =====
 all: staticcheck format build
@@ -30,7 +32,7 @@ shell:
 
 build:
 	@echo "透過 Docker 編譯..."
-	$(DOCKER_RUN) go build -o $(BINARY_NAME) $(MAIN_PATH)
+	$(DOCKER_RUN) go build -p 1 -o $(BINARY_NAME) $(MAIN_PATH)
 
 run:
 	@echo "透過 Docker 執行程式..."
@@ -47,10 +49,10 @@ setup-test-db:
 test:
 	docker run --rm \
 		--network simple-web-app_default \
-		-v $(PWD):/app -v $(FRAMEWORK_DIR):$(FRAMEWORK_DIR) -w /app \
+		-v $(PWD):/app -v $(FRAMEWORK_DIR):$(FRAMEWORK_DIR) -v go-pkg-mod:/go/pkg/mod -v go-build-cache:/root/.cache/go/build -e GOMEMLIMIT=4GiB -w /app \
 		-e DB_DSN="app:secret@tcp(mysql:3306)/appdb_test?parseTime=true" \
 		-e REDIS_ADDR="redis:6379" \
-		$(IMAGE_NAME) go test ./test/... -v
+		$(IMAGE_NAME) go test -p 1 ./test/... -v
 # ===== 檢查與測試 (Check & Testing) =====
 
 staticcheck:
