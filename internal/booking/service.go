@@ -220,6 +220,12 @@ func (s *BookingService) Queue(callerID, ticketID, walletID int) (*bookingrepo.B
 
 // processBooking 由 Kafka consumer 呼叫，執行實際的扣票 + 扣款交易。
 func (s *BookingService) processBooking(msg bookingMessage) {
+	// 冪等性保護：若 booking 已是 confirmed（上次處理完但 offset 未 commit），直接跳過
+	if b, exists := s.db.FindByID(msg.BookingID); exists && b.Status == bookingrepo.StatusConfirmed {
+		log.Printf("[booking] already confirmed bookingID=%d, skipping", msg.BookingID)
+		return
+	}
+
 	ticket, exists := s.ticketDB.FindByID(msg.TicketID)
 	if !exists {
 		s.fail(msg.BookingID, msg.TicketID)
