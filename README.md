@@ -36,7 +36,7 @@ Redis SETNX(ticketID)
                          (非同步)                        │  GET /bookings/{id}
                               │                          ▼
                     Kafka Consumer              status: pending → confirmed
-                              │
+                          │
                     ┌─────┴───────────────┐
                     │  BEGIN TRANSACTION  │
                     │  MarkSold(ticket)   │  WHERE status='available'
