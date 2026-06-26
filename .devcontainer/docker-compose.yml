@@ -1,0 +1,30 @@
+services:
+
+  # 覆寫根目錄 docker-compose.yml 的 app service：
+  # - build target 改成 dev（含 Go SDK、staticcheck、dlv、make，而非單一二進位檔的 runtime image）
+  # - 掛載 workspace + 本機框架目錄（go.mod 的 replace 指向同一台機器的路徑）
+  # - 用具名 volume 持久化 module cache 與 build cache，避免每次重啟都重新下載 / 重新編譯
+  # - command 改成 sleep infinity，讓容器常駐，由 VS Code 附加終端機手動執行指令
+  app:
+    build:
+      target: dev
+    volumes:
+      # 相對路徑是相對於 base compose file（docker-compose.yml，在專案根目錄）解析，不是這個檔案自己的目錄，
+      # 所以這裡用 . 而不是 ..（用 .. 會掛到專案上一層目錄）
+      - .:/app:cached
+      - /Users/xch1/Documents/waterball/simple_web_framework:/Users/xch1/Documents/waterball/simple_web_framework:cached
+      - go-pkg-mod:/go/pkg/mod
+      - go-build-cache:/root/.cache/go/build
+    environment:
+      - DB_DSN=app:secret@tcp(mysql:3306)/appdb?parseTime=true
+      - REDIS_ADDR=redis:6379
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_BOOKING_TOPIC=booking-requests
+      - ELASTIC_ADDR=http://elasticsearch:9200
+      - ES_EVENTS_INDEX=events
+      - GOMEMLIMIT=4GiB
+    command: sleep infinity
+
+volumes:
+  go-pkg-mod:
+  go-build-cache:

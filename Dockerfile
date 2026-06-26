@@ -18,9 +18,12 @@ RUN go install honnef.co/go/tools/cmd/staticcheck@latest
 # 安裝 go-delve（偵錯器）
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
 
-# 先複製 go.mod / go.sum 以利用 Docker Layer Cache
+# 先複製 go.mod / go.sum 以利用 Docker Layer Cache。
+# go.mod 有 replace 指向本機路徑（FRAMEWORK_DIR），該路徑只在 `docker run -v` 執行時才存在，
+# image build 階段看不到，所以這裡允許失敗；真正的 download 留給 container 啟動後執行
+# （make build/test 或 devcontainer 的 postCreateCommand 都會在有 bind mount 的情況下重跑一次）。
 COPY go.mod go.sum* ./
-RUN go mod download
+RUN go mod download || true
 
 # 複製原始碼
 COPY . .
